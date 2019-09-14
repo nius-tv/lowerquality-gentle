@@ -3,7 +3,6 @@
 
 # script to generate the file_patterns of the AIR database
 # see load_air.m file in AIR db to understand the naming convention
-from __future__ import print_function
 import sys, glob, re, os.path
 
 air_dir = sys.argv[1]
@@ -46,4 +45,4 @@ for rir_type in rir_string:
                 file_patterns.append(file_pattern+" "+output_file_name)
 file_patterns = list(set(file_patterns))
 file_patterns.sort()
-print("\n".join(file_patterns))
+print "\n".join(file_patterns)

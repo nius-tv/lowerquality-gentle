@@ -13,10 +13,9 @@ include ../kaldi.mk
 BINFILES = fstdeterminizestar  \
            fstrmsymbols fstisstochastic fstminimizeencoded fstmakecontextfst \
            fstmakecontextsyms fstaddsubsequentialloop fstaddselfloops  \
-           fstrmepslocal fstcomposecontext fsttablecompose fstrand \
-           fstdeterminizelog fstphicompose fstcopy \
-           fstpushspecial fsts-to-transcripts fsts-project fsts-union \
-           fsts-concat make-grammar-fst
+           fstrmepslocal fstcomposecontext fsttablecompose fstrand fstfactor \
+           fstdeterminizelog fstphicompose fstrhocompose fstpropfinal fstcopy \
+	       fstpushspecial fsts-to-transcripts
 
 OBJFILES =
 
@@ -25,7 +24,8 @@ TESTFILES =
 # actually, this library is currently empty.  Everything is a header.
 LIBFILE =
 
-ADDLIBS = ../decoder/kaldi-decoder.a ../fstext/kaldi-fstext.a \
-          ../util/kaldi-util.a ../matrix/kaldi-matrix.a ../base/kaldi-base.a 
+ADDLIBS = ../fstext/kaldi-fstext.a ../util/kaldi-util.a \
+          ../thread/kaldi-thread.a ../matrix/kaldi-matrix.a \
+          ../base/kaldi-base.a 
 
 include ../makefiles/default_rules.mk

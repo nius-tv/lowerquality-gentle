@@ -47,10 +47,10 @@ fi
 
 tar -xovzf speex-1.2rc1.tar.gz|| exit 1
 rm -fr speex
+ln -s speex-1.2rc1 speex 
 
 cd speex-1.2rc1
-./configure --prefix `pwd`/build
+./configure --prefix `pwd`
 make; make install
 
 cd ..
-ln -s speex-1.2rc1/build speex 

@@ -55,7 +55,8 @@ void LogisticRegression::Train(const Matrix<BaseFloat> &xs,
 
   weights_.SetZero();
   TrainParameters(xs_with_prior, ys, conf, &xw);
-  KALDI_LOG << "Finished training parameters without mixture components.";
+  KALDI_LOG <<
+    "Finished training parameters without mixture components." << std::endl;
 
   // If we are using mixture components, we add those components
   // in MixUp and retrain with the extra weights.
@@ -63,7 +64,8 @@ void LogisticRegression::Train(const Matrix<BaseFloat> &xs,
     MixUp(ys, num_classes, conf);
     Matrix<BaseFloat> xw(xs_num_rows, weights_.NumRows());
     TrainParameters(xs_with_prior, ys, conf, &xw);
-    KALDI_LOG << "Finished training mixture components.";
+    KALDI_LOG <<
+      "Finished training mixture components." << std::endl;
   }
 }
 
@@ -85,7 +87,8 @@ void LogisticRegression::MixUp(const std::vector<int32> &ys,
                                   static_cast<int32>(0));
 
   KALDI_LOG << "Target number mixture components was " << conf.mix_up
-            << ". Training " << new_dim << " mixture components.";
+            << ". Training " << new_dim << " mixture components. "
+            << std::endl;
 
   int32 old_dim = weights_.NumRows(),
         num_components = old_dim,

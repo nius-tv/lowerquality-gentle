@@ -47,7 +47,7 @@ template<class T>  void WriteBasicType(std::ostream &os,
       os << t << " ";
   }
   if (os.fail()) {
-    KALDI_ERR << "Write failure in WriteBasicType.";
+    throw std::runtime_error("Write failure in WriteBasicType.");
   }
 }
 
@@ -122,7 +122,7 @@ inline void WriteIntegerPairVector(std::ostream &os, bool binary,
     os << "]\n";
   }
   if (os.fail()) {
-    KALDI_ERR << "Write failure in WriteIntegerPairVector.";
+    throw std::runtime_error("Write failure in WriteIntegerPairVector.");
   }
 }
 
@@ -224,7 +224,7 @@ template<class T> inline void WriteIntegerVector(std::ostream &os, bool binary,
     os << "]\n";
   }
   if (os.fail()) {
-    KALDI_ERR << "Write failure in WriteIntegerVector.";
+    throw std::runtime_error("Write failure in WriteIntegerVector.");
   }
 }
 

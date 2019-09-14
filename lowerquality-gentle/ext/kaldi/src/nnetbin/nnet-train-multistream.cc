@@ -46,7 +46,6 @@ bool ReadData(SequentialBaseFloatMatrixReader& feature_reader,
   for ( ; !feature_reader.Done(); feature_reader.Next()) {
     // Do we have targets?
     const std::string& utt = feature_reader.Key();
-    KALDI_VLOG(3) << "Reading: " << utt;
     if (!target_reader.HasKey(utt)) {
       KALDI_WARN << utt << ", missing targets";
       (*num_no_tgt_mat)++;
@@ -125,8 +124,6 @@ int main(int argc, char *argv[]) {
 
     NnetTrainOptions trn_opts;
     trn_opts.Register(&po);
-    LossOptions loss_opts;
-    loss_opts.Register(&po);
 
     bool binary = true;
     po.Register("binary", &binary, "Write output in binary mode");
@@ -213,11 +210,10 @@ int main(int argc, char *argv[]) {
       weights_reader.Open(frame_weights);
     }
 
-    Xent xent(loss_opts);
-    Mse mse(loss_opts);
+    Xent xent;
+    Mse mse;
 
     Timer time;
-    double time_gpu = 0;
     KALDI_LOG << (crossvalidate ? "CROSS-VALIDATION" : "TRAINING")
               << " STARTED";
 
@@ -229,7 +225,6 @@ int main(int argc, char *argv[]) {
     std::vector<Matrix<BaseFloat> > feats_utt(num_streams);
     std::vector<Posterior> labels_utt(num_streams);
     std::vector<Vector<BaseFloat> > weights_utt(num_streams);
-    std::vector<int32> cursor_utt(num_streams); // 0 initialized,
     std::vector<int32> new_utt_flags(num_streams);
 
     CuMatrix<BaseFloat> feats_transf, nnet_out, obj_diff;
@@ -241,7 +236,7 @@ int main(int argc, char *argv[]) {
       new_utt_flags.assign(num_streams, 0);  // set new-utterance flags to zero,
       for (int s = 0; s < num_streams; s++) {
         // Need a new utterance for stream 's'?
-        if (cursor_utt[s] >= feats_utt[s].NumRows()) {
+        if (feats_utt[s].NumRows() == 0) {
           Matrix<BaseFloat> feats;
           Posterior targets;
           Vector<BaseFloat> weights;
@@ -252,9 +247,7 @@ int main(int argc, char *argv[]) {
                        &num_no_tgt_mat, &num_other_error)) {
 
             // input transform may contain splicing,
-            Timer t;
             nnet_transf.Feedforward(CuMatrix<BaseFloat>(feats), &feats_transf);
-            time_gpu += t.Elapsed();
 
             /* Here we could do the 'targets_delay', BUT...
              * It is better to do it by a <Splice> component!
@@ -267,25 +260,17 @@ int main(int argc, char *argv[]) {
             feats_utt[s] = Matrix<BaseFloat>(feats_transf);
             labels_utt[s] = targets;
             weights_utt[s] = weights;
-            cursor_utt[s] = 0;
             new_utt_flags[s] = 1;
           }
         }
       }
 
-      // End the training when 1st stream is empty
-      // (this avoids over-adaptation to last utterances),
-      size_t inactive_streams = 0;
+      // end the training after processing all the frames,
+      size_t frames_to_go = 0;
       for (int32 s = 0; s < num_streams; s++) {
-        if (feats_utt[s].NumRows() - cursor_utt[s] <= 0) {
-          inactive_streams += 1;
-        }
+        frames_to_go += feats_utt[s].NumRows();
       }
-      if (inactive_streams >= 1) {
-        KALDI_LOG << "No more data to re-fill one of the streams, end of the training!";
-        KALDI_LOG << "(remaining stubs of data are discarded, don't overtrain on them)";
-        break;
-      }
+      if (frames_to_go == 0) break;
 
       // number of frames we'll pack as the streams,
       std::vector<int32> frame_num_utt;
@@ -304,74 +289,72 @@ int main(int argc, char *argv[]) {
         weight_host.Resize(n_streams * batch_size, kSetZero);
         frame_num_utt.resize(n_streams, 0);
 
-        // we slice at the 'cursor' at most 'batch_size' frames,
+        // we'll slice at most 'batch_size' frames,
         for (int32 s = 0; s < n_streams; s++) {
-          int32 num_rows = std::max(0, feats_utt[s].NumRows() - cursor_utt[s]);
+          int32 num_rows = feats_utt[s].NumRows();
           frame_num_utt[s] = std::min(batch_size, num_rows);
         }
 
         // pack the data,
         {
           for (int32 s = 0; s < n_streams; s++) {
-            if (frame_num_utt[s] > 0) {
-              auto mat_tmp = feats_utt[s].RowRange(cursor_utt[s], frame_num_utt[s]);
-              for (int32 r = 0; r < frame_num_utt[s]; r++) {
-                feat_mat_host.Row(r*n_streams + s).CopyFromVec(mat_tmp.Row(r));
-              }
+            const Matrix<BaseFloat>& mat_tmp = feats_utt[s];
+            for (int32 r = 0; r < frame_num_utt[s]; r++) {
+              feat_mat_host.Row(r*n_streams + s).CopyFromVec(mat_tmp.Row(r));
             }
           }
 
           for (int32 s = 0; s < n_streams; s++) {
+            const Posterior& target_tmp = labels_utt[s];
             for (int32 r = 0; r < frame_num_utt[s]; r++) {
-              target_host[r*n_streams + s] = labels_utt[s][cursor_utt[s] + r];
+              target_host[r*n_streams + s] = target_tmp[r];
             }
           }
 
           // padded frames will keep initial zero-weight,
           for (int32 s = 0; s < n_streams; s++) {
-            if (frame_num_utt[s] > 0) {
-              auto weight_tmp = weights_utt[s].Range(cursor_utt[s], frame_num_utt[s]);
-              for (int32 r = 0; r < frame_num_utt[s]; r++) {
-                weight_host(r*n_streams + s) = weight_tmp(r);
-              }
+            const Vector<BaseFloat>& weight_tmp = weights_utt[s];
+            for (int32 r = 0; r < frame_num_utt[s]; r++) {
+              weight_host(r*n_streams + s) = weight_tmp(r);
             }
           }
         }
 
-        // advance the cursors,
-        for (int32 s = 0; s < n_streams; s++) {
-          cursor_utt[s] += frame_num_utt[s];
+        // remove the data we just packed,
+        {
+          for (int32 s = 0; s < n_streams; s++) {
+            // feats,
+            Matrix<BaseFloat>& m = feats_utt[s];
+            if (m.NumRows() == frame_num_utt[s]) {
+              feats_utt[s].Resize(0,0);  // we packed last chunk,
+            } else {
+              feats_utt[s] = Matrix<BaseFloat>(
+                m.RowRange(frame_num_utt[s], m.NumRows() - frame_num_utt[s])
+              );
+            }
+            // labels,
+            Posterior& post = labels_utt[s];
+            post.erase(post.begin(), post.begin() + frame_num_utt[s]);
+            // weights,
+            Vector<BaseFloat>& w = weights_utt[s];
+            if (w.Dim() == frame_num_utt[s]) {
+              weights_utt[s].Resize(0);  // we packed last chunk,
+            } else {
+              weights_utt[s] = Vector<BaseFloat>(
+                w.Range(frame_num_utt[s], w.Dim() - frame_num_utt[s])
+              );
+            }
+          }
         }
       }
 
       // pass the info about padding,
       nnet.SetSeqLengths(frame_num_utt);
-
-      // Show debug info,
-      if (GetVerboseLevel() >= 4) {
-        // cursors in the feature_matrices,
-        {
-          std::ostringstream os;
-          os << "[ ";
-          for (size_t i = 0; i < cursor_utt.size(); i++) {
-            os << cursor_utt[i] << " ";
-          }
-          os << "]";
-          KALDI_LOG << "cursor_utt[" << cursor_utt.size() << "]" << os.str();
-        }
-        // frames in the mini-batch,
-        {
-          std::ostringstream os;
-          os << "[ ";
-          for (size_t i = 0; i < frame_num_utt.size(); i++) {
-            os << frame_num_utt[i] << " ";
-          }
-          os << "]";
-          KALDI_LOG << "frame_num_utt[" << frame_num_utt.size() << "]" << os.str();
-        }
+      // Show the 'utt' lengths in the VLOG[2],
+      if (GetVerboseLevel() >= 2) {
+        KALDI_LOG << "frame_num_utt[" << frame_num_utt.size() << "]" << frame_num_utt;
       }
 
-      Timer t;
       // with new utterance we reset the history,
       nnet.ResetStreams(new_utt_flags);
 
@@ -392,47 +375,57 @@ int main(int argc, char *argv[]) {
         // back-propagate, and do the update,
         nnet.Backpropagate(obj_diff, NULL);
       }
-      time_gpu += t.Elapsed();
 
       // 1st minibatch : show what happens in network,
       if (total_frames == 0) {
-        KALDI_LOG << "### After " << total_frames << " frames,";
-        KALDI_LOG << nnet.Info();
-        KALDI_LOG << nnet.InfoPropagate();
+        KALDI_VLOG(1) << "### After " << total_frames << " frames,";
+        KALDI_VLOG(1) << nnet.Info();
+        KALDI_VLOG(1) << nnet.InfoPropagate();
         if (!crossvalidate) {
-          KALDI_LOG << nnet.InfoBackPropagate();
-          KALDI_LOG << nnet.InfoGradient();
+          KALDI_VLOG(1) << nnet.InfoBackPropagate();
+          KALDI_VLOG(1) << nnet.InfoGradient();
         }
       }
 
+      int32 tmp_done = num_done;
       kaldi::int64 tmp_frames = total_frames;
 
       num_done += std::accumulate(new_utt_flags.begin(), new_utt_flags.end(), 0);
       total_frames += std::accumulate(frame_num_utt.begin(), frame_num_utt.end(), 0);
 
+      // report the speed,
+      int32 N = 5000;
+      if (tmp_done / N != num_done / N) {
+        double time_now = time.Elapsed();
+        KALDI_VLOG(1) << "After " << num_done << " utterances, "
+          << "(" << total_frames/360000.0 << "h), "
+          << "time elapsed = " << time_now / 60 << " min; "
+          << "processed " << total_frames / time_now << " frames per sec.";
+      }
+
       // monitor the NN training (--verbose=2),
       int32 F = 25000;
-      if (GetVerboseLevel() >= 2) {
+      if (GetVerboseLevel() >= 3) {
         // print every 25k frames,
         if (tmp_frames / F != total_frames / F) {
-          KALDI_VLOG(2) << "### After " << total_frames << " frames,";
-          KALDI_VLOG(2) << nnet.Info();
-          KALDI_VLOG(2) << nnet.InfoPropagate();
+          KALDI_VLOG(3) << "### After " << total_frames << " frames,";
+          KALDI_VLOG(3) << nnet.Info();
+          KALDI_VLOG(3) << nnet.InfoPropagate();
           if (!crossvalidate) {
-            KALDI_VLOG(2) << nnet.InfoBackPropagate();
-            KALDI_VLOG(2) << nnet.InfoGradient();
+            KALDI_VLOG(3) << nnet.InfoBackPropagate();
+            KALDI_VLOG(3) << nnet.InfoGradient();
           }
         }
       }
     }
 
     // after last minibatch : show what happens in network,
-    KALDI_LOG << "### After " << total_frames << " frames,";
-    KALDI_LOG << nnet.Info();
-    KALDI_LOG << nnet.InfoPropagate();
+    KALDI_VLOG(1) << "### After " << total_frames << " frames,";
+    KALDI_VLOG(1) << nnet.Info();
+    KALDI_VLOG(1) << nnet.InfoPropagate();
     if (!crossvalidate) {
-      KALDI_LOG << nnet.InfoBackPropagate();
-      KALDI_LOG << nnet.InfoGradient();
+      KALDI_VLOG(1) << nnet.InfoBackPropagate();
+      KALDI_VLOG(1) << nnet.InfoGradient();
     }
 
     if (!crossvalidate) {
@@ -448,8 +441,7 @@ int main(int argc, char *argv[]) {
       << num_other_error << " with other errors. "
       << "[" << (crossvalidate ? "CROSS-VALIDATION" : "TRAINING")
       << ", " << time.Elapsed() / 60 << " min, processing "
-      << total_frames / time.Elapsed() << " frames per sec, "
-      << "GPU_time " << 100.*time_gpu/time.Elapsed() << "% ]";
+      << total_frames / time.Elapsed() << " frames per sec.]";
 
     if (objective_function == "xent") {
       KALDI_LOG << xent.Report();

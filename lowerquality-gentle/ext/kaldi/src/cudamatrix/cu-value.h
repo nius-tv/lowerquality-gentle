@@ -22,7 +22,7 @@
 #ifndef KALDI_CUDAMATRIX_CU_VALUE_H_
 #define KALDI_CUDAMATRIX_CU_VALUE_H_
 
-#include "cudamatrix/cu-device.h"
+#include <cudamatrix/cu-device.h>
 
 namespace kaldi {
 
@@ -39,9 +39,7 @@ class CuValue {
   inline CuValue operator = (const CuValue<Real> &other) {
 #if HAVE_CUDA == 1
     if (CuDevice::Instantiate().Enabled()) {
-      CU_SAFE_CALL(
-        cudaMemcpyAsync(data_, other.data_, sizeof(Real), 
-                        cudaMemcpyDeviceToDevice, cudaStreamPerThread));
+      CU_SAFE_CALL(cudaMemcpy(data_, other.data_, sizeof(Real), cudaMemcpyDeviceToDevice));
       return *this;
     } else
 #endif
@@ -54,9 +52,7 @@ class CuValue {
   inline Real operator = (Real r) { // assignment from Real
 #if HAVE_CUDA == 1
     if (CuDevice::Instantiate().Enabled()) {
-      CU_SAFE_CALL(cudaMemcpyAsync(data_, &r, sizeof(Real), 
-            cudaMemcpyHostToDevice, cudaStreamPerThread));
-      CU_SAFE_CALL(cudaStreamSynchronize(cudaStreamPerThread));
+      CU_SAFE_CALL(cudaMemcpy(data_, &r, sizeof(Real), cudaMemcpyHostToDevice));
       return r;
     } else
 #endif
@@ -67,16 +63,14 @@ class CuValue {
   }
 
   inline Real operator += (Real r) { return (*this = r + Real(*this)); }
-  inline Real operator -= (Real r) { return (*this = Real(*this) - r); }
     
 
   inline operator Real () const { // assignment to Real
 #if HAVE_CUDA == 1
   if (CuDevice::Instantiate().Enabled()) {
     Real value;
-    CU_SAFE_CALL(cudaMemcpyAsync(&value, data_, sizeof(Real), 
-                 cudaMemcpyDeviceToHost, cudaStreamPerThread));
-    CU_SAFE_CALL(cudaStreamSynchronize(cudaStreamPerThread));
+    CU_SAFE_CALL(cudaMemcpy(&value, data_,
+                            sizeof(Real), cudaMemcpyDeviceToHost));
     return value;
   } else
 #endif

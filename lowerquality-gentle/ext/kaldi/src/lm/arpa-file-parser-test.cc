@@ -73,8 +73,7 @@ inline CountedArray<T> MakeCountedArray(T(&array)[N]) {
 
 class TestableArpaFileParser : public ArpaFileParser {
  public:
-  TestableArpaFileParser(const ArpaParseOptions &options,
-                         fst::SymbolTable *symbols)
+  TestableArpaFileParser(ArpaParseOptions options, fst::SymbolTable *symbols)
       : ArpaFileParser(options, symbols),
         header_available_(false),
         read_complete_(false),
@@ -90,7 +89,7 @@ class TestableArpaFileParser : public ArpaFileParser {
   bool header_available_;
   bool read_complete_;
   int32 last_order_;
-  std::vector<NGramTestData> ngrams_;
+  std::vector <NGramTestData> ngrams_;
 };
 
 void TestableArpaFileParser::HeaderAvailable() {
@@ -200,7 +199,7 @@ ngram 3=2\n\
 
   TestableArpaFileParser parser(options, NULL);
   std::istringstream stm(integer_lm, std::ios_base::in);
-  parser.Read(stm);
+  parser.Read(stm, false);
   parser.Validate(MakeCountedArray(expect_counts),
                   MakeCountedArray(expect_ngrams));
 }
@@ -274,7 +273,7 @@ void ReadSymbolicLmNoOovImpl(ArpaParseOptions::OovHandling oov) {
   options.oov_handling = oov;
   TestableArpaFileParser parser(options, &symbols);
   std::istringstream stm(symbolic_lm, std::ios_base::in);
-  parser.Read(stm);
+  parser.Read(stm, false);
   parser.Validate(MakeCountedArray(expect_counts),
                   MakeCountedArray(expect_symbolic_full));
   KALDI_ASSERT(symbols.NumSymbols() == 6);
@@ -304,7 +303,7 @@ void ReadSymbolicLmWithOovImpl(
   options.oov_handling = oov;
   TestableArpaFileParser parser(options, symbols);
   std::istringstream stm(symbolic_lm, std::ios_base::in);
-  parser.Read(stm);
+  parser.Read(stm, false);
   parser.Validate(MakeCountedArray(expect_counts), expect_ngrams);
 }
 

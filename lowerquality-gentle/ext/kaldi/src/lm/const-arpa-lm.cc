@@ -278,16 +278,7 @@ void ConstArpaLmBuilder::ConsumeNGram(const NGram &ngram) {
                            cur_order == ngram_order_ - 1,
                            ngram.logprob, ngram.backoff);
 
-    if (seq_to_state_.find(ngram.words) != seq_to_state_.end()) {
-      std::ostringstream os;
-      os << "[ ";
-      for (size_t i = 0; i < ngram.words.size(); i++) {
-        os << ngram.words[i] << " ";
-      }
-      os <<"]";
-
-      KALDI_ERR << "N-gram " << os.str() << " appears twice in the arpa file";
-    }
+    KALDI_ASSERT(seq_to_state_.find(ngram.words) == seq_to_state_.end());
     seq_to_state_[ngram.words] = lm_state;
   }
 
@@ -1076,8 +1067,7 @@ bool BuildConstArpaLm(const ArpaParseOptions& options,
                       const std::string& const_arpa_wxfilename) {
   ConstArpaLmBuilder lm_builder(options);
   KALDI_LOG << "Reading " << arpa_rxfilename;
-  Input ki(arpa_rxfilename);
-  lm_builder.Read(ki.Stream());
+  ReadKaldiObject(arpa_rxfilename, &lm_builder);
   WriteKaldiObject(lm_builder, const_arpa_wxfilename, true);
   return true;
 }

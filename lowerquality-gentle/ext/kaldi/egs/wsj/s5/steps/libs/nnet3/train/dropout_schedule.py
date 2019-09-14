@@ -13,8 +13,6 @@ logger = logging.getLogger(__name__)
 logger.addHandler(logging.NullHandler())
 
 
-_debug_dropout = False
-
 def _parse_dropout_option(dropout_option):
     """Parses the string option to --trainer.dropout-schedule and
     returns a list of dropout schedules for different component name patterns.
@@ -55,12 +53,11 @@ def _parse_dropout_option(dropout_option):
         this_dropout_values = _parse_dropout_string(this_dropout_str)
         dropout_schedule.append((component_name, this_dropout_values))
 
-    if _debug_dropout:
-        logger.info("Dropout schedules for component names is as follows:")
-        logger.info("<component-name-pattern>: [(num_archives_processed), "
-                    "(dropout_proportion) ...]")
-        for name, schedule in dropout_schedule:
-            logger.info("{0}: {1}".format(name, schedule))
+    logger.info("Dropout schedules for component names is as follows:")
+    logger.info("<component-name-pattern>: [(num_archives_processed), "
+                "(dropout_proportion) ...]")
+    for name, schedule in dropout_schedule:
+        logger.info("{0}: {1}".format(name, schedule))
 
     return dropout_schedule
 
@@ -186,21 +183,8 @@ def _get_component_dropout(dropout_schedule, data_fraction):
 
 def _get_dropout_proportions(dropout_schedule, data_fraction):
     """Returns dropout proportions based on the dropout_schedule for the
-    fraction of data seen at this stage of training.  Returns a list of
-    pairs (pattern, dropout_proportion); for instance, it might return
-    the list ['*', 0.625] meaning a dropout proportion of 0.625 is to
-    be applied to all dropout components.
-
+    fraction of data seen at this stage of training.
     Returns None if dropout_schedule is None.
-
-    dropout_schedule might be (in the sample case using the default pattern of
-    '*'): '0.1,0.5@0.5,0.1', meaning a piecewise linear function that starts at
-    0.1 when data_fraction=0.0, rises to 0.5 when data_fraction=0.5, and falls
-    again to 0.1 when data_fraction=1.0.   It can also contain space-separated
-    items of the form 'pattern=schedule', for instance:
-       '*=0.0,0.5,0.0 lstm.*=0.0,0.3@0.75,0.0'
-    The more specific patterns should go later, otherwise they will be overridden
-    by the less specific patterns' commands.
 
     Calls _get_component_dropout() for the different component name patterns
     in dropout_schedule.
@@ -211,7 +195,6 @@ def _get_dropout_proportions(dropout_schedule, data_fraction):
             See _self_test() for examples.
         data_fraction: The fraction of data seen until this stage of
             training.
-
     """
     if dropout_schedule is None:
         return None
@@ -227,10 +210,6 @@ def _get_dropout_proportions(dropout_schedule, data_fraction):
 def get_dropout_edit_string(dropout_schedule, data_fraction, iter_):
     """Return an nnet3-copy --edits line to modify raw_model_string to
     set dropout proportions according to dropout_proportions.
-    E.g. if _dropout_proportions(dropout_schedule, data_fraction)
-    returns [('*', 0.625)],  this will return the string:
-     "nnet3-copy --edits='set-dropout-proportion name=* proportion=0.625'"
-
 
     Arguments:
         dropout_schedule: Value for the --trainer.dropout-schedule option.
@@ -257,8 +236,7 @@ def get_dropout_edit_string(dropout_schedule, data_fraction, iter_):
         dropout_info.append("pattern/dropout-proportion={0}/{1}".format(
             component_name, dropout_proportion))
 
-    if _debug_dropout:
-        logger.info("On iteration %d, %s", iter_, ', '.join(dropout_info))
+    logger.info("On iteration %d, %s", iter_, ', '.join(dropout_info))
     return ("""nnet3-copy --edits='{edits}' - - |""".format(
         edits=";".join(edit_config_lines)))
 

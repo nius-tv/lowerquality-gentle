@@ -37,10 +37,14 @@ static void TestPushSpecial() {
   VectorFst<Arc> *fst = RandFst<StdArc>();
 
   {
+#ifdef HAVE_OPENFST_GE_10400
     FstPrinter<Arc> fstprinter(*fst, NULL, NULL, NULL, false, true, "\t");
+#else
+    FstPrinter<Arc> fstprinter(*fst, NULL, NULL, NULL, false, true);
+#endif
     fstprinter.Print(&std::cout, "standard output");
   }
-
+  
   VectorFst<Arc> fst_copy(*fst);
 
   float delta = kDelta;
@@ -55,7 +59,11 @@ static void TestPushSpecial() {
 
 
   {
+#ifdef HAVE_OPENFST_GE_10400
     FstPrinter<Arc> fstprinter(fst_copy, NULL, NULL, NULL, false, true, "\t");
+#else
+    FstPrinter<Arc> fstprinter(fst_copy, NULL, NULL, NULL, false, true);
+#endif
     fstprinter.Print(&std::cout, "standard output");
   }
   KALDI_LOG << "Min value is " << min.Value() << ", max value is " << max.Value();
@@ -63,7 +71,7 @@ static void TestPushSpecial() {
   // below, should be <= delta but different pieces of code compute this in this
   // part vs. push-special, so the roundoff may be different.
   KALDI_ASSERT(std::abs(min.Value() - max.Value()) <=  1.2 * delta);
-
+  
   KALDI_ASSERT(RandEquivalent(*fst, fst_copy,
                               5/*paths*/, 0.01/*delta*/, kaldi::Rand()/*seed*/, 100/*path length-- max?*/));
   delete fst;

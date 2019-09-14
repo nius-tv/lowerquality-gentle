@@ -48,6 +48,8 @@ else
   out_dir=$3
 fi
 
+mkdir -p $out_dir
+
 for f in $lm $lang_dir/words.txt; do
   if [ ! -f $f ]; then
     echo "$0: expected input file $f to exist."
@@ -59,9 +61,20 @@ done
 
 loc=`which change-lm-vocab`
 if [ -z $loc ]; then
-  echo You appear to not have SRILM tools installed.
-  echo cd to $KALDI_ROOT/tools and run extras/install_srilm.sh.
-  exit 1
+  if uname -a | grep 64 >/dev/null; then # some kind of 64 bit...
+    sdir=`pwd`/../../../tools/srilm/bin/i686-m64
+  else
+    sdir=`pwd`/../../../tools/srilm/bin/i686
+  fi
+  if [ -f $sdir/../change-lm-vocab ]; then
+    echo Using SRILM tools from $sdir
+    export PATH=$PATH:$sdir:$sdir/..
+  else
+    echo You appear to not have SRILM tools installed, either on your path,
+    echo or installed in $sdir.  cd to ../../../tools and run
+    echo extras/install_srilm.sh.
+    exit 1
+  fi
 fi
 
 echo "Converting '$lm' to FST"
@@ -71,6 +84,7 @@ trap 'rm -rf "$tmpdir"' EXIT
 mkdir -p $out_dir
 cp -r $lang_dir/* $out_dir || exit 1;
 
+lm_base=$(basename $lm '.gz')
 awk '{print $1}' $out_dir/words.txt > $tmpdir/voc || exit 1;
 
 # Change the LM vocabulary to be the intersection of the current LM vocabulary

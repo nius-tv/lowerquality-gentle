@@ -21,82 +21,63 @@
 #include "online2/online-nnet3-decoding.h"
 #include "lat/lattice-functions.h"
 #include "lat/determinize-lattice-pruned.h"
-#include "decoder/grammar-fst.h"
 
 namespace kaldi {
 
-template <typename FST>
-SingleUtteranceNnet3DecoderTpl<FST>::SingleUtteranceNnet3DecoderTpl(
-    const LatticeFasterDecoderConfig &decoder_opts,
-    const TransitionModel &trans_model,
-    const nnet3::DecodableNnetSimpleLoopedInfo &info,
-    const FST &fst,
-    OnlineNnet2FeaturePipeline *features):
-    decoder_opts_(decoder_opts),
-    input_feature_frame_shift_in_seconds_(features->FrameShiftInSeconds()),
-    trans_model_(trans_model),
-    decodable_(trans_model_, info,
-               features->InputFeature(), features->IvectorFeature()),
-    decoder_(fst, decoder_opts_) {
+SingleUtteranceNnet3Decoder::SingleUtteranceNnet3Decoder(
+    const OnlineNnet3DecodingConfig &config,
+    const TransitionModel &tmodel,
+    const nnet3::AmNnetSimple &am_model,
+    const fst::Fst<fst::StdArc> &fst,
+    OnlineFeatureInterface *feature_pipeline):
+    config_(config),
+    feature_pipeline_(feature_pipeline),
+    tmodel_(tmodel),
+    decodable_(am_model, tmodel, config.decodable_opts, feature_pipeline),
+    decoder_(fst, config.decoder_opts) {
   decoder_.InitDecoding();
 }
 
-template <typename FST>
-void SingleUtteranceNnet3DecoderTpl<FST>::InitDecoding(int32 frame_offset) {
-  decoder_.InitDecoding();
-  decodable_.SetFrameOffset(frame_offset);
-}
-
-template <typename FST>
-void SingleUtteranceNnet3DecoderTpl<FST>::AdvanceDecoding() {
+void SingleUtteranceNnet3Decoder::AdvanceDecoding() {
   decoder_.AdvanceDecoding(&decodable_);
 }
 
-template <typename FST>
-void SingleUtteranceNnet3DecoderTpl<FST>::FinalizeDecoding() {
+void SingleUtteranceNnet3Decoder::FinalizeDecoding() {
   decoder_.FinalizeDecoding();
 }
 
-template <typename FST>
-int32 SingleUtteranceNnet3DecoderTpl<FST>::NumFramesDecoded() const {
+int32 SingleUtteranceNnet3Decoder::NumFramesDecoded() const {
   return decoder_.NumFramesDecoded();
 }
 
-template <typename FST>
-void SingleUtteranceNnet3DecoderTpl<FST>::GetLattice(bool end_of_utterance,
+void SingleUtteranceNnet3Decoder::GetLattice(bool end_of_utterance,
                                              CompactLattice *clat) const {
   if (NumFramesDecoded() == 0)
     KALDI_ERR << "You cannot get a lattice if you decoded no frames.";
   Lattice raw_lat;
   decoder_.GetRawLattice(&raw_lat, end_of_utterance);
 
-  if (!decoder_opts_.determinize_lattice)
+  if (!config_.decoder_opts.determinize_lattice)
     KALDI_ERR << "--determinize-lattice=false option is not supported at the moment";
 
-  BaseFloat lat_beam = decoder_opts_.lattice_beam;
+  BaseFloat lat_beam = config_.decoder_opts.lattice_beam;
   DeterminizeLatticePhonePrunedWrapper(
-      trans_model_, &raw_lat, lat_beam, clat, decoder_opts_.det_opts);
+      tmodel_, &raw_lat, lat_beam, clat, config_.decoder_opts.det_opts);
 }
 
-template <typename FST>
-void SingleUtteranceNnet3DecoderTpl<FST>::GetBestPath(bool end_of_utterance,
+void SingleUtteranceNnet3Decoder::GetBestPath(bool end_of_utterance,
                                               Lattice *best_path) const {
   decoder_.GetBestPath(best_path, end_of_utterance);
 }
 
-template <typename FST>
-bool SingleUtteranceNnet3DecoderTpl<FST>::EndpointDetected(
+bool SingleUtteranceNnet3Decoder::EndpointDetected(
     const OnlineEndpointConfig &config) {
-  BaseFloat output_frame_shift =
-      input_feature_frame_shift_in_seconds_ *
-      decodable_.FrameSubsamplingFactor();
-  return kaldi::EndpointDetected(config, trans_model_,
-                                 output_frame_shift, decoder_);
+  int32 subsample = decodable_.FrameSubsamplingFactor();
+  return kaldi::EndpointDetected(config, tmodel_,
+                                 feature_pipeline_->FrameShiftInSeconds() * subsample,
+                                 decoder_);  
 }
 
 
-// Instantiate the template for the types needed.
-template class SingleUtteranceNnet3DecoderTpl<fst::Fst<fst::StdArc> >;
-template class SingleUtteranceNnet3DecoderTpl<fst::GrammarFst>;
-
 }  // namespace kaldi
+

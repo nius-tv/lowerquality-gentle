@@ -102,8 +102,7 @@ esac
 
 if [ ! -z "$transform_dir" ]; then # add transforms to features...
   echo "$0: using fMLLR transforms from $transform_dir"
-  [ ! -f $transform_dir/trans.1 ] && echo "Expected $transform_dir/trans.1 to exist." && exit 1
-  [ ! -f $transform_dir/num_jobs ] && echo "Expected $transform_dir/num_jobs to exist." && exit 1
+  [ ! -f $transform_dir/trans.1 ] && echo "Expected $transform_dir/trans.1 to exist."
   [ "`cat $transform_dir/num_jobs`" -ne "$nj" ] \
     && echo "$0: mismatch in number of jobs with $transform_dir" && exit 1;
   [ -f $alidir/final.mat ] && ! cmp $transform_dir/final.mat $alidir/final.mat && \

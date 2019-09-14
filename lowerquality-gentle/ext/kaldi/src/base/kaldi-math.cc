@@ -20,11 +20,10 @@
 
 #include "base/kaldi-math.h"
 #ifndef _MSC_VER
+#include <pthread.h>
 #include <stdlib.h>
-#include <unistd.h>
 #endif
 #include <string>
-#include <mutex>
 
 namespace kaldi {
 // These routines are tested in matrix/matrix-test.cc
@@ -40,18 +39,24 @@ int32 RoundUpToNearestPowerOfTwo(int32 n) {
   return n+1;
 }
 
-static std::mutex _RandMutex;
+#ifndef _MSC_VER
+static pthread_mutex_t _RandMutex = PTHREAD_MUTEX_INITIALIZER;
+#endif
 
 int Rand(struct RandomState* state) {
-#if !defined(_POSIX_THREAD_SAFE_FUNCTIONS)
-  // On Windows and Cygwin, just call Rand()
+#ifdef _MSC_VER
+  // On Windows, just call Rand()
   return rand();
 #else
   if (state) {
     return rand_r(&(state->seed));
   } else {
-    std::lock_guard<std::mutex> lock(_RandMutex);
-    return rand();
+    int rs = pthread_mutex_lock(&_RandMutex);
+    KALDI_ASSERT(rs == 0);
+    int val = rand();
+    rs = pthread_mutex_unlock(&_RandMutex);
+    KALDI_ASSERT(rs == 0);
+    return val;
   }
 #endif
 }
@@ -110,8 +115,10 @@ int32 RandInt(int32 min_val, int32 max_val, struct RandomState* state) {
       return min_val + ( (unsigned int)( (Rand(state)+RAND_MAX*Rand(state)))
                     % (unsigned int)(max_val+1-min_val));
     } else {
-      KALDI_ERR << "rand_int failed because we do not support such large "
-          "random numbers. (Extend this function).";
+      throw std::runtime_error(std::string()
+                               +"rand_int failed because we do not support "
+                               +"such large random numbers. "
+                               +"(Extend this function).");
     }
   }
 #else
@@ -121,7 +128,7 @@ int32 RandInt(int32 min_val, int32 max_val, struct RandomState* state) {
 }
 
 // Returns poisson-distributed random number.
-// Take care: this takes time proportional
+// Take care: this takes time proportinal
 // to lambda.  Faster algorithms exist but are more complex.
 int32 RandPoisson(float lambda, struct RandomState* state) {
   // Knuth's algorithm.
@@ -160,3 +167,5 @@ void RandGauss2(double *a, double *b, RandomState *state) {
 
 
 }  // end namespace kaldi
+
+

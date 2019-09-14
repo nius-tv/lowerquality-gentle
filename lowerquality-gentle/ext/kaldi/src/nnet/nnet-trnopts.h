@@ -52,7 +52,7 @@ struct NnetTrainOptions {
 
   // print for debug purposes
   friend std::ostream& operator<<(std::ostream& os, const NnetTrainOptions& opts) {
-    os << "NnetTrainOptions : "
+    os << "RbmTrainOptions : "
        << "learn_rate" << opts.learn_rate << ", "
        << "momentum" << opts.momentum << ", "
        << "l2_penalty" << opts.l2_penalty << ", "

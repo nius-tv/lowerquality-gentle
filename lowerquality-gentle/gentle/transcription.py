@@ -33,7 +33,7 @@ class Word:
         return self.case == Word.NOT_FOUND_IN_AUDIO
 
     def as_dict(self, without=None):
-        return { key:val for key, val in self.__dict__.items() if (val is not None) and (key != without)}
+        return { key:val for key, val in self.__dict__.iteritems() if (val is not None) and (key != without)}
 
     def __eq__(self, other):
         return self.__dict__ == other.__dict__
@@ -42,7 +42,7 @@ class Word:
         return not self == other
 
     def __repr__(self):
-        return "Word(" + " ".join(sorted([key + "=" + str(val) for key, val in self.as_dict(without="phones").items()])) + ")"
+        return "Word(" + " ".join(sorted([key + "=" + str(val) for key, val in self.as_dict(without="phones").iteritems()])) + ")"
 
     def shift(self, time=None, offset=None):
         if self.start is not None and time is not None:
@@ -113,7 +113,7 @@ class Transcription:
         '''
         if not self.words:
             return ''
-        buf = io.StringIO()
+        buf = io.BytesIO()
         w = csv.writer(buf)
         for X in self.words:
             if X.case not in (Word.SUCCESS, Word.NOT_FOUND_IN_AUDIO):
@@ -132,7 +132,7 @@ class Transcription:
             counts[word.case] += 1
         stats = {}
         stats['total'] = len(self.words)
-        for key, val in counts.items():
+        for key, val in counts.iteritems():
             stats[key] = val
         return stats
 

@@ -323,7 +323,14 @@ int ParseOptions::Read(int argc, const char *const argv[]) {
 #else
     const char *c = strrchr(argv[0], '/');
 #endif
-    SetProgramName(c == NULL ? argv[0] : c + 1);
+    if (c == NULL)
+      c = argv[0];
+    else
+      c++;
+    char *program_name = new char[strlen(c)+1];
+    strcpy(program_name, c);
+    delete [] g_program_name;
+    g_program_name = program_name;
   }
   // first pass: look for config parameter, look for priority
   for (i = 1; i < argc; i++) {
@@ -497,7 +504,7 @@ void ParseOptions::ReadConfigFile(const std::string &filename) {
 
 
 
-void ParseOptions::SplitLongArg(const std::string &in,
+void ParseOptions::SplitLongArg(std::string in,
                                 std::string *key,
                                 std::string *value,
                                 bool *has_equal_sign) {
@@ -554,8 +561,7 @@ bool ParseOptions::SetOption(const std::string &key,
     *(double_map_[key]) = ToDouble(value);
   } else if (string_map_.end() != string_map_.find(key)) {
     if (!has_equal_sign)
-      KALDI_ERR << "Invalid option --" << key
-                << " (option format is --x=y).";
+      KALDI_ERR << "Invalid option --" << key;
     *(string_map_[key]) = value;
   } else {
     return false;

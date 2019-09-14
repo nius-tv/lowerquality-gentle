@@ -1,5 +1,5 @@
 #!/bin/bash
- 
+
 . ./path.sh || exit 1;
 
 if [ $# != 2 ]; then
@@ -14,11 +14,6 @@ hkust_text_dir=$2
 train_dir=data/local/train
 dev_dir=data/local/dev
 
-# transcripts normalization and segmentation
-# needs external tools
-python2 -c "import mmseg" 2>/dev/null || {
-    echo "Python module mmseg is not found. To install it, run tools/extra/install_mmseg.sh"; exit 1; }
-    
 mkdir -p $train_dir
 mkdir -p $dev_dir
 
@@ -40,7 +35,7 @@ n=`cat $train_dir/sph.flist $dev_dir/sph.flist | wc -l`
 
 #collect all trans, convert encodings to utf-8,
 find $hkust_text_dir -iname "*.txt" | grep -i "trans/train" | xargs cat |\
-  iconv -f GBK -t UTF-8 | perl -e '
+  iconv -f GBK -t utf-8 - | perl -e '
     while (<STDIN>) {
       @A = split(" ", $_);
       if (@A <= 1) { next; }
@@ -55,7 +50,7 @@ find $hkust_text_dir -iname "*.txt" | grep -i "trans/train" | xargs cat |\
   ' | sort -k1 > $train_dir/transcripts.txt || exit 1;
 
 find $hkust_text_dir -iname "*.txt" | grep -i "trans/dev" | xargs cat |\
-  iconv -f GBK -t UTF-8 | perl -e '
+  iconv -f GBK -t utf-8 - | perl -e '
     while (<STDIN>) {
       @A = split(" ", $_);
       if (@A <= 1) { next; }
@@ -70,13 +65,17 @@ find $hkust_text_dir -iname "*.txt" | grep -i "trans/dev" | xargs cat |\
   ' | sort -k1  > $dev_dir/transcripts.txt || exit 1;
 
 #transcripts normalization and segmentation
+#(this needs external tools),
+python -c "import mmseg" 2>/dev/null || \
+  (echo "mmseg is not found. Checkout tools/extra/install_mmseg.sh" && exit 1;)
+
 cat $train_dir/transcripts.txt |\
   sed -e 's/<foreign language=\"[a-zA-Z]\+\">/ /g' |\
   sed -e 's/<\/foreign>/ /g' |\
   sed -e 's/<noise>\(.\+\)<\/noise>/\1/g' |\
   sed -e 's/((\([^)]\{0,\}\)))/\1/g' |\
   local/hkust_normalize.pl |\
-  local/hkust_segment.py |\
+  python local/hkust_segment.py |\
   awk '{if (NF > 1) print $0;}' > $train_dir/text || exit 1;
 
 cat $dev_dir/transcripts.txt |\
@@ -85,7 +84,7 @@ cat $dev_dir/transcripts.txt |\
   sed -e 's/<noise>\(.\+\)<\/noise>/\1/g' |\
   sed -e 's/((\([^)]\{0,\}\)))/\1/g' |\
   local/hkust_normalize.pl |\
-  local/hkust_segment.py |\
+  python local/hkust_segment.py |\
   awk '{if (NF > 1) print $0;}' > $dev_dir/text || exit 1;
 
 # some data is corrupted. Delete them
@@ -105,8 +104,8 @@ awk '{ segment=$1; split(segment,S,"-"); side=S[2]; audioname=S[1];startf=S[3];e
    print segment " " audioname "-" side " " startf/100 " " endf/100}' <$dev_dir/text > $dev_dir/segments
 awk '{name = $0; gsub(".sph$","",name); gsub(".*/","",name); print(name " " $0)}' $dev_dir/sph.flist > $dev_dir/sph.scp
 
-sph2pipe=`which sph2pipe` || sph2pipe=$KALDI_ROOT/tools/sph2pipe_v2.5/sph2pipe
-[ ! -x $sph2pipe ] && echo "Could not find the sph2pipe program at $sph2pipe" && exit 1;
+sph2pipe=`cd ../../..; echo $PWD/tools/sph2pipe_v2.5/sph2pipe`
+[ ! -f $sph2pipe ] && echo "Could not find the sph2pipe program at $sph2pipe" && exit 1;
 
 cat $train_dir/sph.scp | awk -v sph2pipe=$sph2pipe '{printf("%s-A %s -f wav -p -c 1 %s |\n", $1, sph2pipe, $2);
     printf("%s-B %s -f wav -p -c 2 %s |\n", $1, sph2pipe, $2);}' | \
@@ -137,4 +136,5 @@ cat $dev_dir/segments | awk '{spk=substr($1,1,33); print $1 " " spk}' > $dev_dir
 cat $dev_dir/utt2spk | sort -k 2 | utils/utt2spk_to_spk2utt.pl > $dev_dir/spk2utt || exit 1;
 
 echo "$0: HKUST data preparation succeeded"
-exit 0
+
+exit;

@@ -136,8 +136,7 @@ int main(int argc, char *argv[]) {
         fst_rxfilename = po.GetOptArg(2),
         fst_wxfilename = po.GetOptArg(3);
 
-    VectorFst<StdArc> *fst = CastOrConvertToVectorFst(
-        ReadFstKaldiGeneric(fst_rxfilename));
+    VectorFst<StdArc> *fst = ReadFstKaldi(fst_rxfilename);
 
     std::vector<int32> disambig_in;
     if (!ReadIntegerVectorSimple(disambig_rxfilename, &disambig_in))

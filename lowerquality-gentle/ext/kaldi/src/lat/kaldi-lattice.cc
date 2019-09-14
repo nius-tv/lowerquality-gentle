@@ -75,9 +75,15 @@ bool WriteCompactLattice(std::ostream &os, bool binary,
     // on its own line.
     os << '\n';
     bool acceptor = true, write_one = false;
+#ifdef HAVE_OPENFST_GE_10400
     fst::FstPrinter<CompactLatticeArc> printer(t, t.InputSymbols(),
                                                t.OutputSymbols(),
                                                NULL, acceptor, write_one, "\t");
+#else
+    fst::FstPrinter<CompactLatticeArc> printer(t, t.InputSymbols(),
+                                               t.OutputSymbols(),
+                                               NULL, acceptor, write_one);
+#endif
     printer.Print(&os, "<unknown>");
     if (os.fail())
       KALDI_WARN << "Stream failure detected.";
@@ -125,7 +131,7 @@ class LatticeReader {
       if (col.size() > 5) {
         KALDI_WARN << "Reading lattice: bad line in FST: " << line;
         delete fst;
-        delete cfst;
+        delete cfst;    
         return PairT(static_cast<Lattice*>(NULL),
                      static_cast<CompactLattice*>(NULL));
       }
@@ -162,7 +168,7 @@ class LatticeReader {
             else fst->SetFinal(s, w);
             break;
           case 3: // 3 columns not ok for Lattice format; it's not an acceptor.
-            ok = false;
+            ok = false; 
             break;
           case 4:
             ok = ConvertStringToInteger(col[1], &arc.nextstate) &&
@@ -247,7 +253,7 @@ class LatticeReader {
           SplitStringToVector(line, separator.c_str(), true, &col);
           if (col.empty()) break;
         }
-        return PairT(static_cast<Lattice*>(NULL),
+        return PairT(static_cast<Lattice*>(NULL), 
                      static_cast<CompactLattice*>(NULL));
       }
     }
@@ -400,9 +406,15 @@ bool WriteLattice(std::ostream &os, bool binary, const Lattice &t) {
     // on its own line.
     os << '\n';
     bool acceptor = false, write_one = false;
+#ifdef HAVE_OPENFST_GE_10400
     fst::FstPrinter<LatticeArc> printer(t, t.InputSymbols(),
                                         t.OutputSymbols(),
                                         NULL, acceptor, write_one, "\t");
+#else
+    fst::FstPrinter<LatticeArc> printer(t, t.InputSymbols(),
+                                        t.OutputSymbols(),
+                                        NULL, acceptor, write_one);
+#endif
     printer.Print(&os, "<unknown>");
     if (os.fail())
       KALDI_WARN << "Stream failure detected.";
@@ -499,7 +511,7 @@ bool LatticeHolder::Read(std::istream &is) {
   } else {
     return ReadLattice(is, true, &t_);
   }
-}
+}     
 
 
 

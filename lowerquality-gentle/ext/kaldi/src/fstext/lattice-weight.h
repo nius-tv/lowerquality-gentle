@@ -57,7 +57,7 @@ class LatticeWeightTpl {
 
   inline void SetValue2(T f) { value2_ = f; }
 
-  LatticeWeightTpl(): value1_{}, value2_{} { }
+  LatticeWeightTpl() { }
 
   LatticeWeightTpl(T a, T b): value1_(a), value2_(b) {}
 
@@ -109,17 +109,17 @@ class LatticeWeightTpl {
   }
 
   LatticeWeightTpl Quantize(float delta = kDelta) const {
-    if (value1_ + value2_ == -numeric_limits<T>::infinity()) {
+    if (value1_+value2_ == -numeric_limits<T>::infinity()) {
       return LatticeWeightTpl(-numeric_limits<T>::infinity(), -numeric_limits<T>::infinity());
-    } else if (value1_ + value2_ == numeric_limits<T>::infinity()) {
+    } else if (value1_+value2_ == numeric_limits<T>::infinity()) {
       return LatticeWeightTpl(numeric_limits<T>::infinity(), numeric_limits<T>::infinity());
-    } else if (value1_ + value2_ != value1_ + value2_) { // NaN
-      return LatticeWeightTpl(value1_ + value2_, value1_ + value2_);
+    } else if (value1_+value2_ != value1_+value2_) { // NaN
+      return LatticeWeightTpl(value1_+value2_, value1_+value2_);
     } else {
       return LatticeWeightTpl(floor(value1_/delta + 0.5F)*delta, floor(value2_/delta + 0.5F) * delta);
     }
   }
-  static constexpr uint64 Properties() {
+  static uint64 Properties() {
     return kLeftSemiring | kRightSemiring | kCommutative |
         kPath | kIdempotent;
   }
@@ -179,7 +179,8 @@ class LatticeWeightTpl {
     } else if (s == "-Infinity") {
       f = -numeric_limits<T>::infinity();
     } else if (s == "BadNumber") {
-      f = numeric_limits<T>::quiet_NaN();
+      f = numeric_limits<T>::infinity();
+      f -= f; // get NaN
     } else {
       char *p;
       f = strtod(s.c_str(), &p);
@@ -319,37 +320,6 @@ template<class FloatType>
 class NaturalLess<LatticeWeightTpl<FloatType> > {
  public:
   typedef LatticeWeightTpl<FloatType> Weight;
-
-  NaturalLess() {}
-
-  bool operator()(const Weight &w1, const Weight &w2) const {
-    // NaturalLess is a negative order (opposite to normal ordering).
-    // This operator () corresponds to "<" in the negative order, which
-    // corresponds to the ">" in the normal order.
-    return (Compare(w1, w2) == 1);
-  }
-};
-template<>
-class NaturalLess<LatticeWeightTpl<float> > {
- public:
-  typedef LatticeWeightTpl<float> Weight;
-
-  NaturalLess() {}
-
-  bool operator()(const Weight &w1, const Weight &w2) const {
-    // NaturalLess is a negative order (opposite to normal ordering).
-    // This operator () corresponds to "<" in the negative order, which
-    // corresponds to the ">" in the normal order.
-    return (Compare(w1, w2) == 1);
-  }
-};
-template<>
-class NaturalLess<LatticeWeightTpl<double> > {
- public:
-  typedef LatticeWeightTpl<double> Weight;
-
-  NaturalLess() {}
-
   bool operator()(const Weight &w1, const Weight &w2) const {
     // NaturalLess is a negative order (opposite to normal ordering).
     // This operator () corresponds to "<" in the negative order, which
@@ -503,7 +473,7 @@ class CompactLatticeWeightTpl {
     return CompactLatticeWeightTpl(weight_.Quantize(delta), string_);
   }
 
-  static constexpr uint64 Properties() {
+  static uint64 Properties() {
     return kLeftSemiring | kRightSemiring | kPath | kIdempotent;
   }
 
@@ -588,8 +558,8 @@ inline bool ApproxEqual(const CompactLatticeWeightTpl<WeightType, IntType> &w1,
 // break.
 
 template<class WeightType, class IntType>
-inline int Compare(const CompactLatticeWeightTpl<WeightType, IntType> &w1,
-                   const CompactLatticeWeightTpl<WeightType, IntType> &w2) {
+inline int Compare (const CompactLatticeWeightTpl<WeightType, IntType> &w1,
+                    const CompactLatticeWeightTpl<WeightType, IntType> &w2) {
   int c1 = Compare(w1.Weight(), w2.Weight());
   if (c1 != 0) return c1;
   int l1 = w1.String().size(), l2 = w2.String().size();
@@ -609,37 +579,6 @@ template<class FloatType, class IntType>
 class NaturalLess<CompactLatticeWeightTpl<LatticeWeightTpl<FloatType>, IntType> > {
  public:
   typedef CompactLatticeWeightTpl<LatticeWeightTpl<FloatType>, IntType> Weight;
-
-  NaturalLess() {}
-
-  bool operator()(const Weight &w1, const Weight &w2) const {
-    // NaturalLess is a negative order (opposite to normal ordering).
-    // This operator () corresponds to "<" in the negative order, which
-    // corresponds to the ">" in the normal order.
-    return (Compare(w1, w2) == 1);
-  }
-};
-template<>
-class NaturalLess<CompactLatticeWeightTpl<LatticeWeightTpl<float>, int32> > {
- public:
-  typedef CompactLatticeWeightTpl<LatticeWeightTpl<float>, int32> Weight;
-
-  NaturalLess() {}
-
-  bool operator()(const Weight &w1, const Weight &w2) const {
-    // NaturalLess is a negative order (opposite to normal ordering).
-    // This operator () corresponds to "<" in the negative order, which
-    // corresponds to the ">" in the normal order.
-    return (Compare(w1, w2) == 1);
-  }
-};
-template<>
-class NaturalLess<CompactLatticeWeightTpl<LatticeWeightTpl<double>, int32> > {
- public:
-  typedef CompactLatticeWeightTpl<LatticeWeightTpl<double>, int32> Weight;
-
-  NaturalLess() {}
-
   bool operator()(const Weight &w1, const Weight &w2) const {
     // NaturalLess is a negative order (opposite to normal ordering).
     // This operator () corresponds to "<" in the negative order, which
@@ -809,7 +748,7 @@ inline CompactLatticeWeightTpl<Weight, IntType> ScaleTupleWeight(
     const CompactLatticeWeightTpl<Weight, IntType> &w,
     const vector<vector<ScaleFloatType> > &scale) {
   return CompactLatticeWeightTpl<Weight, IntType>(
-      Weight(ScaleTupleWeight(w.Weight(), scale)), w.String());
+      ScaleTupleWeight(w.Weight(), scale), w.String());
 }
 
 /** Define some ConvertLatticeWeight functions that are used in various lattice

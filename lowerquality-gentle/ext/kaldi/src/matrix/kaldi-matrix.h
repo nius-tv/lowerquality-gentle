@@ -3,8 +3,6 @@
 // Copyright 2009-2011  Ondrej Glembek;  Microsoft Corporation;  Lukas Burget;
 //                      Saarland University;  Petr Schwarz;  Yanmin Qian;
 //                      Karel Vesely;  Go Vivace Inc.;  Haihua Xu
-//           2017       Shiyin Kang
-//           2019       Yiwen Shao
 
 // See ../../COPYING for clarification regarding multiple authors
 //
@@ -23,8 +21,6 @@
 
 #ifndef KALDI_MATRIX_KALDI_MATRIX_H_
 #define KALDI_MATRIX_KALDI_MATRIX_H_ 1
-
-#include <algorithm>
 
 #include "matrix/matrix-common.h"
 
@@ -55,15 +51,13 @@ class MatrixBase {
   friend class CuMatrix<Real>;
   friend class CuSubMatrix<Real>;
   friend class CuPackedMatrix<Real>;
-  friend class PackedMatrix<Real>;
-  friend class SparseMatrix<Real>;
-  friend class SparseMatrix<float>;
-  friend class SparseMatrix<double>;
 
-  /// Returns number of rows (or zero for empty matrix).
+  friend class PackedMatrix<Real>;
+
+  /// Returns number of rows (or zero for emtpy matrix).
   inline MatrixIndexT  NumRows() const { return num_rows_; }
 
-  /// Returns number of columns (or zero for empty matrix).
+  /// Returns number of columns (or zero for emtpy matrix).
   inline MatrixIndexT NumCols() const { return num_cols_; }
 
   /// Stride (distance in memory between each row).  Will be >= NumCols.
@@ -238,8 +232,6 @@ class MatrixBase {
 
   /// Set, element-by-element, *this = max(*this, A)
   void Max(const MatrixBase<Real> &A);
-  /// Set, element-by-element, *this = min(*this, A)
-  void Min(const MatrixBase<Real> &A);
 
   /// Equivalent to (*this) = (*this) * diag(scale).  Scaling
   /// each column by a scalar taken from that dimension of the vector.
@@ -330,50 +322,32 @@ class MatrixBase {
   /// the same).
   void AddToRows(Real alpha, Real *const *dst) const;
 
-  /// For each row i of *this, adds this->Row(i) to
-  /// dst->Row(indexes(i)) if indexes(i) >= 0, else do nothing.
-  /// Requires that all the indexes[i] that are >= 0
-  /// be distinct, otherwise the behavior is undefined.
-  void AddToRows(Real alpha,
-                 const MatrixIndexT *indexes,
-                 MatrixBase<Real> *dst) const;
+  /// Applies floor to all matrix elements
+  void ApplyFloor(Real floor_val);
 
-  inline void ApplyPow(Real power) {
-    this -> Pow(*this, power);
-  }
+  /// Applies floor to all matrix elements
+  void ApplyCeiling(Real ceiling_val);
 
+  /// Calculates log of all the matrix elemnts
+  void ApplyLog();
 
-  inline void ApplyPowAbs(Real power, bool include_sign=false) {
-    this -> PowAbs(*this, power, include_sign);
-  }
+  /// Exponentiate each of the elements.
+  void ApplyExp();
 
-  inline void ApplyHeaviside() {
-    this -> Heaviside(*this);
-  }
+  /// Applies power to all matrix elements
+  void ApplyPow(Real power);
 
-  inline void ApplyFloor(Real floor_val) {
-    this -> Floor(*this, floor_val);
-  }
+  /// Apply power to the absolute value of each element.
+  /// Include the sign of the input element if include_sign == true.
+  /// If the power is negative and the input to the power is zero,
+  /// The output will be set zero.
+  void ApplyPowAbs(Real power, bool include_sign=false);
 
-  inline void ApplyCeiling(Real ceiling_val) {
-    this -> Ceiling(*this, ceiling_val);
-  }
-
-  inline void ApplyExp() {
-    this -> Exp(*this);
-  }
-
-  inline void ApplyExpSpecial() {
-    this -> ExpSpecial(*this);
-  }
-
-  inline void ApplyExpLimited(Real lower_limit, Real upper_limit) {
-    this -> ExpLimited(*this, lower_limit, upper_limit);
-  }
-
-  inline void ApplyLog() {
-    this -> Log(*this);
-  }
+  /// Applies the Heaviside step function (x > 0 ? 1 : 0) to all matrix elements
+  /// Note: in general you can make different choices for x = 0, but for now
+  /// please leave it as it (i.e. returning zero) because it affects the
+  /// RectifiedLinearComponent in the neural net code.
+  void ApplyHeaviside();
 
   /// Eigenvalue Decomposition of a square NxN matrix into the form (*this) = P D
   /// P^{-1}.  Be careful: the relationship of D to the eigenvalues we output is
@@ -489,35 +463,6 @@ class MatrixBase {
   /// because it affects the RectifiedLinearComponent in the neural net code.
   void Heaviside(const MatrixBase<Real> &src);
 
-  void Exp(const MatrixBase<Real> &src);
-
-  void Pow(const MatrixBase<Real> &src, Real power);
-
-  void Log(const MatrixBase<Real> &src);
-
-  /// Apply power to the absolute value of each element.
-  /// If include_sign is true, the result will be multiplied with
-  /// the sign of the input value.
-  /// If the power is negative and the input to the power is zero,
-  /// The output will be set zero. If include_sign is true, it will
-  /// multiply the result by the sign of the input.
-  void PowAbs(const MatrixBase<Real> &src, Real power, bool include_sign=false);
-
-  void Floor(const MatrixBase<Real> &src, Real floor_val);
-
-  void Ceiling(const MatrixBase<Real> &src, Real ceiling_val);
-
-  /// For each element x of the matrix, set it to
-  /// (x < 0 ? exp(x) : x + 1).  This function is used
-  /// in our RNNLM training.
-  void ExpSpecial(const MatrixBase<Real> &src);
-
-  /// This is equivalent to running:
-  /// Floor(src, lower_limit);
-  /// Ceiling(src, upper_limit);
-  /// Exp(src)
-  void ExpLimited(const MatrixBase<Real> &src, Real lower_limit, Real upper_limit);
-
   /// Set each element to y = log(1 + exp(x))
   void SoftHinge(const MatrixBase<Real> &src);
 
@@ -566,10 +511,6 @@ class MatrixBase {
    * positive semi-definite (check_thresh controls how stringent the check is;
    * set it to 2 to ensure it won't ever complain, but it will zero out negative
    * dimensions in your matrix.
-   *
-   * Caution: if you want the eigenvalues, it may make more sense to convert to
-   * SpMatrix and use Eig() function there, which uses eigenvalue decomposition
-   * directly rather than SVD.
   */
   void SymPosSemiDefEig(VectorBase<Real> *s, MatrixBase<Real> *P,
                         Real check_thresh = 0.001);
@@ -602,24 +543,6 @@ class MatrixBase {
   /// *this += alpha * M [or M^T]
   void AddMat(const Real alpha, const MatrixBase<Real> &M,
               MatrixTransposeType transA = kNoTrans);
-
-  /// *this += alpha * A [or A^T].
-  void AddSmat(Real alpha, const SparseMatrix<Real> &A,
-               MatrixTransposeType trans = kNoTrans);
-
-  /// (*this) = alpha * op(A) * B + beta * (*this), where A is sparse.
-  /// Multiplication of sparse with dense matrix.  See also AddMatSmat.
-  void AddSmatMat(Real alpha, const SparseMatrix<Real> &A,
-                  MatrixTransposeType transA, const MatrixBase<Real> &B,
-                  Real beta);
-
-  /// (*this) = alpha * A * op(B) + beta * (*this), where B is sparse
-  /// and op(B) is either B or trans(B) depending on the 'transB' argument.
-  /// This is multiplication of a dense by a sparse matrix.  See also
-  /// AddSmatMat.
-  void AddMatSmat(Real alpha, const MatrixBase<Real> &A,
-                  const SparseMatrix<Real> &B, MatrixTransposeType transB,
-                  Real beta);
 
   /// *this = beta * *this + alpha * M M^T, for symmetric matrices.  It only
   /// updates the lower triangle of *this.  It will leave the matrix asymmetric;
@@ -802,7 +725,7 @@ class MatrixBase {
   /// data memory area
   Real*   data_;
 
-  /// these attributes store the real matrix size as it is stored in memory
+  /// these atributes store the real matrix size as it is stored in memory
   /// including memalignment
   MatrixIndexT    num_cols_;   /// < Number of columns
   MatrixIndexT    num_rows_;   /// < Number of rows

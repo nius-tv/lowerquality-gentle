@@ -13,7 +13,7 @@ fi
 
 set -o pipefail -e
 
-galeFolder=$(utils/make_absolute.sh $1)
+galeFolder=$(readlink -f $1)
 symtab=./data/lang/words.txt
 
 min_lmwt=7

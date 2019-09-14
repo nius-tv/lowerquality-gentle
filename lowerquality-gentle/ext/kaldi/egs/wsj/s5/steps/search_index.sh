@@ -8,7 +8,6 @@ cmd=run.pl
 nbest=-1
 strict=true
 indices_dir=
-frame_subsampling_factor=1
 # End configuration section.
 
 echo "$0 $@"  # Print the command line for logging
@@ -37,23 +36,15 @@ fi
 
 mkdir -p $kwsdir/log;
 nj=`cat $indices_dir/num_jobs` || exit 1;
-if [ -f $kwsdatadir/keywords.fsts.gz ]; then
-  keywords="\"gunzip -c $kwsdatadir/keywords.fsts.gz|\""
-elif [ -f $kwsdatadir/keywords.fsts ]; then
-  keywords=$kwsdatadir/keywords.fsts;
-else
-  echo "$0: no such file $kwsdatadir/keywords.fsts[.gz]" && exit 1;
-fi
+keywords=$kwsdatadir/keywords.fsts;
 
-for f in $indices_dir/index.1.gz ; do
+for f in $indices_dir/index.1.gz $keywords; do
   [ ! -f $f ] && echo "make_index.sh: no such file $f" && exit 1;
 done
 
 $cmd JOB=1:$nj $kwsdir/log/search.JOB.log \
   kws-search --strict=$strict --negative-tolerance=-1 \
-  --frame-subsampling-factor=${frame_subsampling_factor} \
   "ark:gzip -cdf $indices_dir/index.JOB.gz|" ark:$keywords \
-  "ark,t:|gzip -c > $kwsdir/result.JOB.gz" \
-  "ark,t:|gzip -c > $kwsdir/stats.JOB.gz" || exit 1;
+  "ark,t:|int2sym.pl -f 2 $kwsdatadir/utter_id > $kwsdir/result.JOB" || exit 1;
 
 exit 0;

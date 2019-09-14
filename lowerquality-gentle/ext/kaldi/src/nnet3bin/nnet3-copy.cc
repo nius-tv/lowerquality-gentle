@@ -44,7 +44,6 @@ int main(int argc, char *argv[]) {
     BaseFloat learning_rate = -1;
     std::string nnet_config, edits_config, edits_str;
     BaseFloat scale = 1.0;
-    bool prepare_for_test = false;
 
     ParseOptions po(usage);
     po.Register("binary", &binary_write, "Write output in binary mode");
@@ -65,11 +64,6 @@ int main(int argc, char *argv[]) {
                 "'--edits=remove-orphans'.");
     po.Register("scale", &scale, "The parameter matrices are scaled"
                 " by the specified value.");
-    po.Register("prepare-for-test", &prepare_for_test,
-                "If true, prepares the model for test time (may reduce model size "
-                "slightly.  Involves setting test mode in dropout and batch-norm "
-                "components, and calling CollapseModel() which may remove some "
-                "components.");
     po.Read(argc, argv);
 
     if (po.NumArgs() != 2) {
@@ -90,10 +84,10 @@ int main(int argc, char *argv[]) {
 
     if (learning_rate >= 0)
       SetLearningRate(learning_rate, &nnet);
-
+    
     if (scale != 1.0)
       ScaleNnet(scale, &nnet);
-
+    
     if (!edits_config.empty()) {
       Input ki(edits_config);
       ReadEditConfig(ki.Stream(), &nnet);
@@ -105,11 +99,7 @@ int main(int argc, char *argv[]) {
       std::istringstream is(edits_str);
       ReadEditConfig(is, &nnet);
     }
-    if (prepare_for_test) {
-      SetBatchnormTestMode(true, &nnet);
-      SetDropoutTestMode(true, &nnet);
-      CollapseModel(CollapseModelConfig(), &nnet);
-    }
+
     WriteKaldiObject(nnet, raw_nnet_wxfilename, binary_write);
     KALDI_LOG << "Copied raw neural net from " << raw_nnet_rxfilename
               << " to " << raw_nnet_wxfilename;

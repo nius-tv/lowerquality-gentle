@@ -221,8 +221,7 @@ sub merge_segments() {
         if ($A[$p] == 0) { $num_sil++; }
         else { last; }
       }
-      
-      $num_silence_phones[$n] = $num_sil; # should be the num of silence
+      $num_silence_phones[$n] = $p;
     }
   }
 

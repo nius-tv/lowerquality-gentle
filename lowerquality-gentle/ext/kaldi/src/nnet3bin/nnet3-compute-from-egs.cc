@@ -35,11 +35,8 @@ class NnetComputerFromEg {
       nnet_(nnet), compiler_(nnet) { }
 
   // Compute the output (which will have the same number of rows as the number
-  // of Indexes in the output with the name 'output_name' of the eg), 
-  // and put it in "*output".
-  // An output with the name 'output_name' is expected to exist in the network.
-  void Compute(const NnetExample &eg, const std::string &output_name, 
-               Matrix<BaseFloat> *output) {
+  // of Indexes in the output of the eg), and put it in "output".
+  void Compute(const NnetExample &eg, Matrix<BaseFloat> *output) {
     ComputationRequest request;
     bool need_backprop = false, store_stats = false;
     GetComputationRequest(nnet_, eg, need_backprop, store_stats, &request);
@@ -49,15 +46,15 @@ class NnetComputerFromEg {
       options.debug = true;
     NnetComputer computer(options, computation, nnet_, NULL);
     computer.AcceptInputs(nnet_, eg.io);
-    computer.Run();
-    const CuMatrixBase<BaseFloat> &nnet_output = computer.GetOutput(output_name);
+    computer.Forward();
+    const CuMatrixBase<BaseFloat> &nnet_output = computer.GetOutput("output");
     output->Resize(nnet_output.NumRows(), nnet_output.NumCols());
     nnet_output.CopyToMat(output);
   }
  private:
   const Nnet &nnet_;
   CachingOptimizingCompiler compiler_;
-
+  
 };
 
 }
@@ -79,23 +76,20 @@ int main(int argc, char *argv[]) {
         "e.g.:\n"
         "nnet3-compute-from-egs --apply-exp=true 0.raw ark:1.egs ark:- | matrix-sum-rows ark:- ... \n"
         "See also: nnet3-compute\n";
-
+    
     bool binary_write = true,
         apply_exp = false;
     std::string use_gpu = "yes";
-    std::string output_name = "output";
 
     ParseOptions po(usage);
     po.Register("binary", &binary_write, "Write output in binary mode");
     po.Register("apply-exp", &apply_exp, "If true, apply exp function to "
                 "output");
-    po.Register("output-name", &output_name, "Do computation for "
-                "specified output-node");
     po.Register("use-gpu", &use_gpu,
                 "yes|no|optional|wait, only has effect if compiled with CUDA");
 
     po.Read(argc, argv);
-
+    
     if (po.NumArgs() != 3) {
       po.PrintUsage();
       exit(1);
@@ -104,7 +98,7 @@ int main(int argc, char *argv[]) {
 #if HAVE_CUDA==1
     CuDevice::Instantiate().SelectGpuId(use_gpu);
 #endif
-
+    
     std::string nnet_rxfilename = po.GetArg(1),
         examples_rspecifier = po.GetArg(2),
         matrix_wspecifier = po.GetArg(3);
@@ -115,13 +109,13 @@ int main(int argc, char *argv[]) {
     NnetComputerFromEg computer(nnet);
 
     int64 num_egs = 0;
-
+    
     SequentialNnetExampleReader example_reader(examples_rspecifier);
     BaseFloatMatrixWriter matrix_writer(matrix_wspecifier);
-
+    
     for (; !example_reader.Done(); example_reader.Next(), num_egs++) {
       Matrix<BaseFloat> output;
-      computer.Compute(example_reader.Value(), output_name, &output);
+      computer.Compute(example_reader.Value(), &output);
       KALDI_ASSERT(output.NumRows() != 0);
       if (apply_exp)
         output.ApplyExp();
@@ -137,3 +131,5 @@ int main(int argc, char *argv[]) {
     return -1;
   }
 }
+
+

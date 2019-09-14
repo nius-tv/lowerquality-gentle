@@ -1,30 +1,12 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 
 # Copyright 2016   Vimal Manohar
 #           2016   Johns Hopkins University (author: Daniel Povey)
 # Apache 2.0
 
 from __future__ import print_function
-import argparse
-import logging
-import operator
-import os
-import sys
+import sys, operator, argparse, os
 from collections import defaultdict
-
-import io
-sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding="utf8")
-sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf8")
-
-
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
-handler = logging.StreamHandler()
-handler.setLevel(logging.INFO)
-formatter = logging.Formatter("%(asctime)s [%(pathname)s:%(lineno)s - "
-                              "%(funcName)s - %(levelname)s ] %(message)s")
-handler.setFormatter(formatter)
-logger.addHandler(handler)
 
 # If you supply the <lang> directory (the one that corresponds to
 # how you decoded the data) to this script, it assumes that the <lang>
@@ -53,28 +35,24 @@ args = parser.parse_args()
 non_scored_words = set()
 
 
-def read_lang(lang_dir):
+def ReadLang(lang_dir):
     global non_scored_words
 
     if not os.path.isdir(lang_dir):
-        logger.error("expected lang/ directory %s to "
-                     "exist.", lang_dir)
-        raise RuntimeError
-
+        sys.exit("get_non_scored_words.py expected lang/ directory {0} to "
+                 "exist.".format(lang_dir))
     for f in [ '/words.txt', '/phones/silence.int', '/phones/align_lexicon.int' ]:
         if not os.path.exists(lang_dir + f):
-            logger.error("expected file %s%s to exist.", lang_dir, f)
-            raise RuntimeError
-
+            sys.exit("get_non_scored_words.py: expected file {0}{1} to exist.".format(
+                    lang_dir, f))
     # read silence-phones.
     try:
         silence_phones = set()
         for line in open(lang_dir + '/phones/silence.int').readlines():
             silence_phones.add(int(line))
-    except Exception:
-        logger.error("problem reading file "
-                     "%s/phones/silence.int", lang_dir)
-        raise
+    except Exception as e:
+        sys.exit("get_non_scored_words.py: problem reading file "
+                 "{0}/phones/silence.int: {1}".format(lang_dir, str(e)))
 
     # read align_lexicon.int.
     # format is: <word-index> <word-index> <phone-index1> <phone-index2> ..
@@ -88,25 +66,25 @@ def read_lang(lang_dir):
             if len(a) == 3 and a[0] == a[1] and int(a[0]) > 0 and \
                     int(a[2]) in silence_phones:
                 silence_word_ints.add(int(a[0]))
-    except Exception:
-        logger.error("problem reading file %s/phones/align_lexicon.int",
-                     lang_dir)
-        raise
+    except Exception as e:
+        sys.exit("get_non_scored_words.py: problem reading file "
+                 "{0}/phones/align_lexicon.int: "
+                 "{1}".format(lang_dir, str(e)))
 
     try:
-        for line in open(lang_dir + '/words.txt', encoding='utf-8').readlines():
+        for line in open(lang_dir + '/words.txt').readlines():
             [ word, integer ] = line.split()
             if int(integer) in silence_word_ints:
                 non_scored_words.add(word)
-    except Exception:
-        logger.error("problem reading file %s/words.txt.int", lang_dir)
-        raise
+    except Exception as e:
+        sys.exit("get_non_scored_words.py: problem reading file "
+                 "{0}/words.txt.int: {1}".format(lang_dir, str(e)))
 
     if not len(non_scored_words) == len(silence_word_ints):
-        raise RuntimeError("error getting silence words, len({0}) != len({1})"
-                           "".format(non_scored_words, silence_word_ints))
+        sys.exit("get_non_scored_words.py: error getting silence words, len({0}) != len({1})",
+                 str(non_scored_words), str(silence_word_ints))
     for word in non_scored_words:
         print(word)
 
 
-read_lang(args.lang)
+ReadLang(args.lang)

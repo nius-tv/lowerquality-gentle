@@ -16,7 +16,6 @@
 # limitations under the License.
 
 '''
-from __future__ import print_function
 
 
 import sys
@@ -60,8 +59,8 @@ def create_parallel_file_list(session, sndlist, txtlist):
         if len(os.listdir(session.sessiondir)) != 0:  # Check if there are files in the directory
             global n
             n += 1
-            session.sessiondir = "{}_{}".format(session.sessiondir, n)
-            session.speaker_id = "{}_{}".format(session.speaker_id, n)
+            session.sessiondir = session.sessiondir + "_" + str(n)
+            session.speaker_id = session.speaker_id + "_" + str(n)
             os.mkdir(session.sessiondir)
             shadow = True
     else:

@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 # Copyright 2014  Gaurav Kumar.   Apache 2.0
 
-from __future__ import print_function
 import os
 import sys
 import subprocess
@@ -19,7 +18,7 @@ latticeLocation = {1:"/export/a04/gkumar/kaldi-trunk/egs/fishcall_es/j-1/latjosh
 
 latticeDict = {}
 
-for key,location in latticeLocation.items():
+for key,location in latticeLocation.iteritems():
     for root, dirs, filenames in os.walk(location):
         for f in filenames:
             latticeDict[f] = str(key)
@@ -106,16 +105,16 @@ for item in fileList:
             # file so it can be checked later
             proc = subprocess.Popen("/export/a04/gkumar/moses/mosesdecoder/checkplf < " + finalPLFFile + " 2>&1 | awk 'FNR == 2 {print}'", stdout=subprocess.PIPE, shell=True)
             line = proc.stdout.readline()
-            print("{} {}".format(line, lineNo))
+            print line + " " + str(lineNo)
             if line.strip() != "PLF format appears to be correct.":
                 os.system("cp " + finalFST + " " + invalidplfdir + "/" + timeInfo[0])
                 invalidPLF.write(invalidplfdir + "/" + timeInfo[0] + "\n")
-                rmLines.write("{}\n".format(lineNo))
+                rmLines.write(str(lineNo) + "\n")
             else:
                 provFile.write(PLFline)
         else:
             blankPLF.write(timeInfo[0] + "\n")
-            rmLines.write("{}\n".format(lineNo))
+            rmLines.write(str(lineNo) + "\n")
         # Now convert to PLF
         lineNo += 1
 

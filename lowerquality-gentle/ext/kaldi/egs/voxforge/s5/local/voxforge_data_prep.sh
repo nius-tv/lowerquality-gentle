@@ -6,7 +6,7 @@
 
 # Makes train/test splits
 
-. ./path.sh
+source path.sh
 
 echo "=== Starting initial VoxForge data preparation ..."
 

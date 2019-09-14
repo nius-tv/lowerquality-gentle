@@ -16,5 +16,4 @@ setup(
     license='MIT',
     packages=['gentle'],
     install_requires=['twisted'],
-    test_suite='tests',
 )

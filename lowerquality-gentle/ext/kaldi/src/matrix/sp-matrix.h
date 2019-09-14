@@ -48,9 +48,9 @@ class SpMatrix : public PackedMatrix<Real> {
 
   /// Copy constructor from CUDA version of SpMatrix
   /// This is defined in ../cudamatrix/cu-sp-matrix.h
-
+  
   explicit SpMatrix(const CuSpMatrix<Real> &cu);
-
+ 
   explicit SpMatrix(MatrixIndexT r, MatrixResizeType resize_type = kSetZero)
       : PackedMatrix<Real>(r, resize_type) {}
 
@@ -167,7 +167,7 @@ class SpMatrix : public PackedMatrix<Real> {
   /// If you need the eigenvalues sorted, the function SortSvd declared in
   /// kaldi-matrix is suitable.
   void Eig(VectorBase<Real> *s, MatrixBase<Real> *P = NULL) const;
-
+  
   /// This function gives you, approximately, the largest eigenvalues of the
   /// symmetric matrix and the corresponding eigenvectors.  (largest meaning,
   /// further from zero).  It does this by doing a SVD within the Krylov
@@ -195,6 +195,16 @@ class SpMatrix : public PackedMatrix<Real> {
   void TopEigs(VectorBase<Real> *s, MatrixBase<Real> *P,
                MatrixIndexT lanczos_dim = 0) const;
 
+
+  
+  /// Takes log of the matrix (does eigenvalue decomposition then takes
+  /// log of eigenvalues and reconstructs).  Will throw of not +ve definite.
+  void Log();
+
+
+  // Takes exponential of the matrix (equivalent to doing eigenvalue
+  // decomposition then taking exp of eigenvalues and reconstructing).
+  void Exp();
 
   /// Returns the maximum of the absolute values of any of the
   /// eigenvalues.
@@ -231,7 +241,7 @@ class SpMatrix : public PackedMatrix<Real> {
   /// Does *this = beta * *thi + alpha * diag(v) * S * diag(v)
   void AddVec2Sp(const Real alpha, const VectorBase<Real> &v,
                  const SpMatrix<Real> &S, const Real beta);
-
+  
   /// diagonal update, this <-- this + diag(v)
   template<typename OtherReal>
   void AddDiagVec(const Real alpha, const VectorBase<OtherReal> &v);
@@ -304,7 +314,7 @@ class SpMatrix : public PackedMatrix<Real> {
   /// do the symmetric eigenvalue decomposition and no longer use the SVD
   /// code for that purose.
   int ApplyFloor(Real floor);
-
+  
   bool IsDiagonal(Real cutoff = 1.0e-05) const;
   bool IsUnit(Real cutoff = 1.0e-05) const;
   bool IsZero(Real cutoff = 1.0e-05) const;
@@ -324,7 +334,7 @@ class SpMatrix : public PackedMatrix<Real> {
   // of the largest one (or zero if there are no positive eigenvalues).
   // Takes the condition number we are willing to accept, and floors
   // eigenvalues to the largest eigenvalue divided by this.
-  //  Returns #eigs floored or already equal to the floor.
+  //  Returns #eigs floored or already equal to the floor. 
   // Throws exception if input is not positive definite.
   // returns #floored.
   MatrixIndexT LimitCond(Real maxCond = 1.0e+5, bool invert = false);
@@ -354,7 +364,7 @@ class SpMatrix : public PackedMatrix<Real> {
   /// At entry Q should probably be either NULL or orthogonal, but we don't check
   /// this.
   void Qr(MatrixBase<Real> *Q);
-
+  
  private:
  void EigInternal(VectorBase<Real> *s, MatrixBase<Real> *P,
                    Real tolerance, int recurse) const;
@@ -442,7 +452,7 @@ Real VecSpVec(const VectorBase<Real> &v1, const SpMatrix<Real> &M,
 /// option but it's set false for back compatibility).
 struct SolverOptions {
   BaseFloat K; // maximum condition number
-  BaseFloat eps;
+  BaseFloat eps; 
   std::string name;
   bool optimize_delta;
   bool diagonal_precondition;
@@ -470,7 +480,7 @@ Real SolveQuadraticProblem(const SpMatrix<Real> &H,
                            const VectorBase<Real> &g,
                            const SolverOptions &opts,
                            VectorBase<Real> *x);
-
+                           
 
 
 /// Maximizes the auxiliary function :
@@ -515,3 +525,4 @@ Real SolveDoubleQuadraticMatrixProblem(const MatrixBase<Real> &G,
 
 
 #endif  // KALDI_MATRIX_SP_MATRIX_H_
+

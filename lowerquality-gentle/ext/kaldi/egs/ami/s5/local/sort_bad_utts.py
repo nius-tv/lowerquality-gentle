@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 
-from __future__ import print_function
 import sys
 import argparse
 import logging
@@ -39,10 +38,10 @@ def GetSortedWers(utt_info_file):
     utt_wer_sorted = sorted(utt_wer, key = lambda k : k[1])
     try:
         import numpy as np
-        bins = list(range(0,105,5))
+        bins = range(0,105,5)
         bins.append(sys.float_info.max)
 
-        hist, bin_edges = np.histogram([x[1] for x in utt_wer_sorted],
+        hist, bin_edges = np.histogram(map(lambda x: x[1], utt_wer_sorted),
                                        bins = bins)
         num_utts = len(utt_wer)
         string = ''

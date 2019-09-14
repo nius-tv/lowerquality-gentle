@@ -24,8 +24,16 @@
 
 #include "base/kaldi-error.h"
 
+#ifdef _MSC_VER
 #include <unordered_map>
 using std::unordered_map;
+#elif __cplusplus > 199711L || defined(__GXX_EXPERIMENTAL_CXX0X__)
+#include <unordered_map>
+using std::unordered_map;
+#else
+#include <tr1/unordered_map>
+using std::tr1::unordered_map;
+#endif
 
 #include <vector>
 #include <climits>
@@ -129,7 +137,7 @@ template<class Label, class StringId> class StringRepository {
   }
 
  private:
-  KALDI_DISALLOW_COPY_AND_ASSIGN(StringRepository);
+  DISALLOW_COPY_AND_ASSIGN(StringRepository);
 
   StringId IdOfSeqInternal(const vector<Label> &v) {
     typename MapType::iterator iter = map_.find(&v);
@@ -601,7 +609,7 @@ template<class F> class DeterminizerStar {
 
   void Debug();
 
-  KALDI_DISALLOW_COPY_AND_ASSIGN(DeterminizerStar);
+  DISALLOW_COPY_AND_ASSIGN(DeterminizerStar);
   deque<pair<vector<Element>*, OutputStateId> > Q_;  // queue of subsets to be processed.
 
   vector<vector<TempArc> > output_arcs_;  // essentially an FST in our format.

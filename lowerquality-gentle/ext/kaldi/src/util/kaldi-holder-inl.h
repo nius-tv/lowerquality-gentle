@@ -26,8 +26,6 @@
 #include <vector>
 #include <utility>
 #include <string>
-
-#include "base/kaldi-utils.h"
 #include "util/kaldi-io.h"
 #include "util/text-utils.h"
 #include "matrix/kaldi-matrix.h"
@@ -92,14 +90,13 @@ template<class KaldiType> class KaldiObjectHolder {
   // reading.
   static bool IsReadInBinary() { return true; }
 
-  T &Value() {
+  const T &Value() const {
     // code error if !t_.
     if (!t_) KALDI_ERR << "KaldiObjectHolder::Value() called wrongly.";
     return *t_;
   }
 
   void Swap(KaldiObjectHolder<T> *other) {
-    // the t_ values are pointers so this is a shallow swap.
     std::swap(t_, other->t_);
   }
 
@@ -195,7 +192,7 @@ template<class BasicType> class BasicHolder {
   // open in binary mode for reading.
   static bool IsReadInBinary() { return true; }
 
-  T &Value() {
+  const T &Value() const {
     return t_;
   }
 
@@ -316,7 +313,7 @@ template<class BasicType> class BasicVectorHolder {
   // open in binary mode for reading.
   static bool IsReadInBinary() { return true; }
 
-  T &Value() { return t_; }
+  const T &Value() const {  return t_; }
 
   void Swap(BasicVectorHolder<BasicType> *other) {
     t_.swap(other->t_);
@@ -467,7 +464,7 @@ template<class BasicType> class BasicVectorVectorHolder {
   // open in binary mode for reading.
   static bool IsReadInBinary() { return true; }
 
-  T &Value() {  return t_; }
+  const T &Value() const {  return t_; }
 
   void Swap(BasicVectorVectorHolder<BasicType> *other) {
     t_.swap(other->t_);
@@ -487,7 +484,7 @@ template<class BasicType> class BasicVectorVectorHolder {
 
 
 /// BasicPairVectorHolder is a Holder for a vector of pairs of
-/// a basic type, e.g. std::vector<std::pair<int32, int32> >.
+/// a basic type, e.g. std::vector<std::pair<int32> >.
 /// Note: a basic type is defined as a type for which ReadBasicType
 /// and WriteBasicType are implemented, i.e. integer and floating
 /// types, and bool.
@@ -612,7 +609,7 @@ template<class BasicType> class BasicPairVectorHolder {
   // open in binary mode for reading.
   static bool IsReadInBinary() { return true; }
 
-  T &Value() {  return t_; }
+  const T &Value() const {  return t_; }
 
   void Swap(BasicPairVectorHolder<BasicType> *other) {
     t_.swap(other->t_);
@@ -657,9 +654,9 @@ class TokenHolder {
     char c;
     while (isspace(c = is.peek()) && c!= '\n') is.get();
     if (is.peek() != '\n') {
-      KALDI_WARN << "TokenHolder::Read, expected newline, got char "
-        << CharToString(is.peek())
-        << ", at stream pos " << is.tellg();
+      KALDI_ERR << "TokenHolder::Read, expected newline, got char " <<
+          CharToString(is.peek())
+                << ", at stream pos " << is.tellg();
       return false;
     }
     is.get();  // get '\n'
@@ -671,7 +668,7 @@ class TokenHolder {
   // fine either way, but doing it this way will exercise more of the code).
   static bool IsReadInBinary() { return false; }
 
-  T &Value() { return t_; }
+  const T &Value() const { return t_; }
 
   ~TokenHolder() { }
 
@@ -736,7 +733,7 @@ class TokenVectorHolder {
   // matter, it would work either way since we ignore the extra '\r'.
   static bool IsReadInBinary() { return false; }
 
-  T &Value() { return t_; }
+  const T &Value() const { return t_; }
 
   void Swap(TokenVectorHolder *other) {
     t_.swap(other->t_);
@@ -784,7 +781,7 @@ class HtkMatrixHolder {
   // HTK-format matrices only read in binary.
   static bool IsReadInBinary() { return true; }
 
-  T &Value() { return t_; }
+  const T &Value() const { return t_; }
 
   void Swap(HtkMatrixHolder *other) {
     t_.first.Swap(&(other->t_.first));
@@ -895,7 +892,7 @@ template<int kFeatDim> class SphinxMatrixHolder {
   // Only read in binary
   static bool IsReadInBinary() { return true; }
 
-  T &Value() { return feats_; }
+  const T &Value() const { return feats_; }
 
   void Swap(SphinxMatrixHolder *other) {
     feats_.Swap(&(other->feats_));

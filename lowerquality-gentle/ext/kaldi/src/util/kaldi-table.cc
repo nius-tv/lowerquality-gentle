@@ -223,7 +223,7 @@ WspecifierType ClassifyWspecifier(const std::string &wspecifier,
 
 
 RspecifierType ClassifyRspecifier(const std::string &rspecifier,
-                                  std::string *rxfilename,
+                                  std::string *wxfilename,
                                   RspecifierOptions *opts) {
   // Examples
   // ark:rxfilename  ->  kArchiveRspecifier
@@ -247,7 +247,7 @@ RspecifierType ClassifyRspecifier(const std::string &rspecifier,
 
   // Improperly formed Rspecifiers will be classified as kNoRspecifier.
 
-  if (rxfilename) rxfilename->clear();
+  if (wxfilename) wxfilename->clear();
 
   if (opts != NULL)
     *opts = RspecifierOptions();  // Make sure all the defaults are as in the
@@ -308,8 +308,8 @@ RspecifierType ClassifyRspecifier(const std::string &rspecifier,
     }
   }
   if ((rs == kArchiveRspecifier || rs == kScriptRspecifier)
-     && rxfilename != NULL)
-    *rxfilename = after_colon;
+     && wxfilename != NULL)
+    *wxfilename = after_colon;
   return rs;
 }
 

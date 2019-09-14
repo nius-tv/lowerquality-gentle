@@ -112,5 +112,3 @@ fi
 
 
 echo train lm succeeded
-
-exit 0

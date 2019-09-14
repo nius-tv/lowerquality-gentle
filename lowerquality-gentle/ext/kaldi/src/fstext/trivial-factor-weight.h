@@ -52,8 +52,17 @@
 // This has the advantage that it always works, for any input (also I just
 // prefer this approach).
 
+#ifdef _MSC_VER
 #include <unordered_map>
 using std::unordered_map;
+#elif __cplusplus > 199711L || defined(__GXX_EXPERIMENTAL_CXX0X__)
+#include <unordered_map>
+using std::unordered_map;
+#else
+#include <tr1/unordered_map>
+using std::tr1::unordered_map;
+#endif
+
 
 #include <algorithm>
 #include <string>
@@ -85,7 +94,6 @@ struct TrivialFactorWeightOptions : CacheOptions {
 
 };
 
-namespace internal {
 
 // Implementation class for TrivialFactorWeight
 template <class A, class F>
@@ -109,8 +117,10 @@ class TrivialFactorWeightFstImpl
   typedef typename A::StateId StateId;
   typedef F FactorIterator;
 
+#ifdef HAVE_OPENFST_GE_10400
   typedef DefaultCacheStore<A> Store;
   typedef typename Store::State State;
+#endif
 
   struct Element {
     Element() {}
@@ -145,6 +155,10 @@ class TrivialFactorWeightFstImpl
     SetProperties(impl.Properties(), kCopyProperties);
     SetInputSymbols(impl.InputSymbols());
     SetOutputSymbols(impl.OutputSymbols());
+  }
+
+  ~TrivialFactorWeightFstImpl() {
+    delete fst_;
   }
 
   StateId Start() {
@@ -293,7 +307,7 @@ class TrivialFactorWeightFstImpl
 
   typedef unordered_map<Element, StateId, ElementKey, ElementEqual> ElementMap;
 
-  std::unique_ptr<const Fst<A>> fst_;
+  const Fst<A> *fst_;
   float delta_;
   uint32 mode_;               // factoring arc and/or final weights
   Label extra_ilabel_;        // ilabel of arc created when factoring final w's
@@ -301,11 +315,11 @@ class TrivialFactorWeightFstImpl
   vector<Element> elements_;  // mapping Fst state to Elements
   ElementMap element_map_;    // mapping Elements to Fst state
 
+  void operator = (const TrivialFactorWeightFstImpl<A, F> &);  // disallow
 };
 
-}  // namespace internal
 
-/// TrivialFactorWeightFst takes as template parameter a FactorIterator as
+/// FactorWeightFst takes as template parameter a FactorIterator as
 /// defined above. The result of weight factoring is a transducer
 /// equivalent to the input whose path weights have been factored
 /// according to the FactorIterator. States and transitions will be
@@ -322,8 +336,7 @@ class TrivialFactorWeightFstImpl
 
 
 template <class A, class F>
-class TrivialFactorWeightFst :
-    public ImplToFst<internal::TrivialFactorWeightFstImpl<A, F>> {
+class TrivialFactorWeightFst : public ImplToFst< TrivialFactorWeightFstImpl<A, F> > {
  public:
   friend class ArcIterator< TrivialFactorWeightFst<A, F> >;
   friend class StateIterator< TrivialFactorWeightFst<A, F> >;
@@ -331,36 +344,40 @@ class TrivialFactorWeightFst :
   typedef A Arc;
   typedef typename A::Weight Weight;
   typedef typename A::StateId StateId;
+#ifdef HAVE_OPENFST_GE_10400
   typedef DefaultCacheStore<Arc> Store;
   typedef typename Store::State State;
-  typedef internal::TrivialFactorWeightFstImpl<A, F> Impl;
+#else
+  typedef CacheState<A> State;
+#endif
+  typedef TrivialFactorWeightFstImpl<A, F> Impl;
 
-  explicit TrivialFactorWeightFst(const Fst<A> &fst)
-      : ImplToFst<Impl>(std::make_shared<Impl>(fst, TrivialFactorWeightOptions<A>())) {}
+  TrivialFactorWeightFst(const Fst<A> &fst)
+      : ImplToFst<Impl>(new Impl(fst, TrivialFactorWeightOptions<A>())) {}
 
   TrivialFactorWeightFst(const Fst<A> &fst,  const TrivialFactorWeightOptions<A> &opts)
-      : ImplToFst<Impl>(std::make_shared<Impl>(fst, opts)) {}
+      : ImplToFst<Impl>(new Impl(fst, opts)) {}
 
   // See Fst<>::Copy() for doc.
   TrivialFactorWeightFst(const TrivialFactorWeightFst<A, F> &fst, bool copy)
       : ImplToFst<Impl>(fst, copy) {}
 
   // Get a copy of this TrivialFactorWeightFst. See Fst<>::Copy() for further doc.
-  TrivialFactorWeightFst<A, F> *Copy(bool copy = false) const override {
+  virtual TrivialFactorWeightFst<A, F> *Copy(bool copy = false) const {
     return new TrivialFactorWeightFst<A, F>(*this, copy);
   }
 
-  inline void InitStateIterator(StateIteratorData<A> *data) const override;
+  virtual inline void InitStateIterator(StateIteratorData<A> *data) const;
 
-  void InitArcIterator(StateId s, ArcIteratorData<A> *data) const override {
-    GetMutableImpl()->InitArcIterator(s, data);
+  virtual void InitArcIterator(StateId s, ArcIteratorData<A> *data) const {
+    GetImpl()->InitArcIterator(s, data);
   }
 
  private:
-  using ImplToFst<Impl>::GetImpl;
-  using ImplToFst<Impl>::GetMutableImpl;
+  // Makes visible to friends.
+  Impl *GetImpl() const { return ImplToFst<Impl>::GetImpl(); }
 
-  TrivialFactorWeightFst &operator=(const TrivialFactorWeightFst &fst) = delete;
+  void operator=(const TrivialFactorWeightFst<A, F> &fst);  // Disallow
 };
 
 
@@ -370,7 +387,7 @@ class StateIterator< TrivialFactorWeightFst<A, F> >
     : public CacheStateIterator< TrivialFactorWeightFst<A, F> > {
  public:
   explicit StateIterator(const TrivialFactorWeightFst<A, F> &fst)
-      : CacheStateIterator< TrivialFactorWeightFst<A, F> >(fst, fst.GetMutableImpl()) {}
+      : CacheStateIterator< TrivialFactorWeightFst<A, F> >(fst, fst.GetImpl()) {}
 };
 
 
@@ -382,14 +399,18 @@ class ArcIterator< TrivialFactorWeightFst<A, F> >
   typedef typename A::StateId StateId;
 
   ArcIterator(const TrivialFactorWeightFst<A, F> &fst, StateId s)
-      : CacheArcIterator< TrivialFactorWeightFst<A, F>>(fst.GetMutableImpl(), s) {
-    if (!fst.GetImpl()->HasArcs(s)) fst.GetMutableImpl()->Expand(s);
+      : CacheArcIterator< TrivialFactorWeightFst<A, F> >(fst.GetImpl(), s) {
+    if (!fst.GetImpl()->HasArcs(s))
+      fst.GetImpl()->Expand(s);
   }
+
+ private:
+  DISALLOW_COPY_AND_ASSIGN(ArcIterator);
 };
 
-template <class A, class F>
-inline void TrivialFactorWeightFst<A, F>::InitStateIterator(
-    StateIteratorData<A> *data) const {
+template <class A, class F> inline
+void TrivialFactorWeightFst<A, F>::InitStateIterator(StateIteratorData<A> *data) const
+{
   data->base = new StateIterator< TrivialFactorWeightFst<A, F> >(*this);
 }
 
@@ -399,3 +420,4 @@ inline void TrivialFactorWeightFst<A, F>::InitStateIterator(
 }  // namespace fst
 
 #endif
+

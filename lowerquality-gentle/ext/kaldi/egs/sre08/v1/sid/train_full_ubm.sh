@@ -16,7 +16,6 @@ num_iters=4
 min_gaussian_weight=1.0e-04
 remove_low_count_gaussians=true # set this to false if you need #gauss to stay fixed.
 cleanup=true
-apply_cmn=true # If true, apply sliding window cepstral mean normalization
 # End configuration section.
 
 echo "$0 $@"  # Print the command line for logging
@@ -45,8 +44,6 @@ if [ $# != 3 ]; then
   echo "  --cleanup <true,false|true>                      # If true, clean up accumulators, intermediate"
   echo "                                                   # models and gselect info"
   exit 1;
-  echo " --apply-cmn <true,false|true>                     # if true, apply sliding window cepstral mean"
-  echo "                                                   # normalization to features"
 fi
 
 data=$1
@@ -69,11 +66,7 @@ if [ -f $srcdir/delta_opts ]; then
 fi
 
 ## Set up features.
-if $apply_cmn; then
-  feats="ark,s,cs:add-deltas $delta_opts scp:$sdata/JOB/feats.scp ark:- | apply-cmvn-sliding --norm-vars=false --center=true --cmn-window=300 ark:- ark:- | select-voiced-frames ark:- scp,s,cs:$sdata/JOB/vad.scp ark:- | subsample-feats --n=$subsample ark:- ark:- |"
-else
-  feats="ark,s,cs:add-deltas $delta_opts scp:$sdata/JOB/feats.scp ark:- | select-voiced-frames ark:- scp,s,cs:$sdata/JOB/vad.scp ark:- | subsample-feats --n=$subsample ark:- ark:- |"
-fi
+feats="ark,s,cs:add-deltas $delta_opts scp:$sdata/JOB/feats.scp ark:- | apply-cmvn-sliding --norm-vars=false --center=true --cmn-window=300 ark:- ark:- | select-voiced-frames ark:- scp,s,cs:$sdata/JOB/vad.scp ark:- | subsample-feats --n=$subsample ark:- ark:- |"
 
 
 if [ $stage -le -2 ]; then

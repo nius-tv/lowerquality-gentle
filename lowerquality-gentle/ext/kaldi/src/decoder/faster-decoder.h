@@ -76,7 +76,7 @@ class FasterDecoder {
   void Decode(DecodableInterface *decodable);
 
   /// Returns true if a final state was active on the last frame.
-  bool ReachedFinal() const;
+  bool ReachedFinal();
 
   /// GetBestPath gets the decoding traceback. If "use_final_probs" is true
   /// AND we reached a final state, it limits itself to final states;
@@ -170,7 +170,7 @@ class FasterDecoder {
   HashList<StateId, Token*> toks_;
   const fst::Fst<fst::StdArc> &fst_;
   FasterDecoderOptions config_;
-  std::vector<const Elem* > queue_;  // temp variable used in ProcessNonemitting,
+  std::vector<StateId> queue_;  // temp variable used in ProcessNonemitting,
   std::vector<BaseFloat> tmp_array_;  // used in GetCutoff.
   // make it class member to avoid internal new/delete.
 

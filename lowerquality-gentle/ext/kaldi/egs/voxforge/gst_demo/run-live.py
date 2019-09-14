@@ -6,7 +6,6 @@
 #
 # Apache 2.0
 
-from __future__ import print_function
 import sys
 import os
 import gi
@@ -47,7 +46,7 @@ class DemoApp(object):
         """Initialize the speech components"""
         self.pulsesrc = Gst.ElementFactory.make("pulsesrc", "pulsesrc")
         if self.pulsesrc == None:
-            print("Error loading pulsesrc GST plugin. You probably need the gstreamer1.0-pulseaudio package", file=sys.stderr)
+            print >> sys.stderr, "Error loading pulsesrc GST plugin. You probably need the gstreamer1.0-pulseaudio package"
             sys.exit()	
         self.audioconvert = Gst.ElementFactory.make("audioconvert", "audioconvert")
         self.audioresample = Gst.ElementFactory.make("audioresample", "audioresample")    
@@ -57,7 +56,7 @@ class DemoApp(object):
         if self.asr:
           model_dir = "online-data/models/tri2b_mmi/"
           if not os.path.isdir(model_dir):
-              print("Model (%s) not downloaded. Run run-simulated.sh first" % model_dir, file=sys.stderr)
+              print >> sys.stderr, "Model (%s) not downloaded. Run run-simulated.sh first" % model_dir
               sys.exit(1)
           self.asr.set_property("fst", model_dir + "HCLG.fst")
           self.asr.set_property("lda-mat", model_dir + "matrix")
@@ -68,12 +67,12 @@ class DemoApp(object):
           self.asr.set_property("beam", 12.0)
           self.asr.set_property("acoustic-scale", 0.0769)
         else:
-          print("Couldn't create the onlinegmmfasterdecoder element. ", file=sys.stderr)
-          if "GST_PLUGIN_PATH" in os.environ:
-            print("Have you compiled the Kaldi GStreamer plugin?", file=sys.stderr)
+          print >> sys.stderr, "Couldn't create the onlinegmmfasterdecoder element. "
+          if os.environ.has_key("GST_PLUGIN_PATH"):
+            print >> sys.stderr, "Have you compiled the Kaldi GStreamer plugin?"
           else:
-            print("You probably need to set the GST_PLUGIN_PATH envoronment variable", file=sys.stderr)
-            print("Try running: GST_PLUGIN_PATH=../../../src/gst-plugin %s" % sys.argv[0], file=sys.stderr)
+            print >> sys.stderr, "You probably need to set the GST_PLUGIN_PATH envoronment variable"
+            print >> sys.stderr, "Try running: GST_PLUGIN_PATH=../../../src/gst-plugin %s" % sys.argv[0]
           sys.exit();
         
         # initially silence the decoder
@@ -112,10 +111,10 @@ class DemoApp(object):
 
 if __name__ == '__main__':
   app = DemoApp()
-  print('''
+  print '''
   The (bigram) language model used to build the decoding graph was
   estimated on an audio book's text. The text in question is
   King Solomon's Mines" (http://www.gutenberg.org/ebooks/2166).
-  You may want to read some sentences from this book first ...''')
+  You may want to read some sentences from this book first ...'''
 
   Gtk.main()

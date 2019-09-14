@@ -4,7 +4,6 @@
 # Apache 2.0.
 
 from __future__ import print_function
-from __future__ import division
 from collections import defaultdict
 import argparse
 import sys
@@ -17,7 +16,7 @@ def GetArgs():
                                      "(For words in the reference lexicon, N = # pron variants given by the reference"
                                      "lexicon; For oov words, N = avg. # pron variants per word in the reference lexicon)."
                                      "r is a user-specified constant, like 2.",
-                                     epilog = "See steps/dict/learn_lexicon_greedy.sh for example")
+                                     epilog = "See steps/dict/learn_lexicon.sh for example")
 
     parser.add_argument("--r", type = float, default = "2.0",
                         help = "a user-specified ratio parameter which determines how many"
@@ -62,7 +61,7 @@ def ReadStats(pron_stats_handle):
         phones = ' '.join(splits[2:])
         stats[word].append((phones, count))
 
-    for word, entry in stats.items():
+    for word, entry in stats.iteritems():
         entry.sort(key=lambda x: x[1])
     return stats
 
@@ -87,12 +86,12 @@ def PruneProns(args, stats, ref_lexicon):
     # Compute the average # pron variants counts per word in the reference lexicon.
     num_words_ref = 0
     num_prons_ref = 0
-    for word, prons in ref_lexicon.items():
+    for word, prons in ref_lexicon.iteritems():
         num_words_ref += 1
         num_prons_ref += len(prons)
     avg_variants_counts_ref = math.ceil(float(num_prons_ref) / float(num_words_ref))
 
-    for word, entry in stats.items():
+    for word, entry in stats.iteritems():
         if word in ref_lexicon:
             variants_counts = args.r * len(ref_lexicon[word])
         else:
@@ -106,7 +105,7 @@ def PruneProns(args, stats, ref_lexicon):
             except IndexError:
                 break
         
-    for word, entry in stats.items():
+    for word, entry in stats.iteritems():
         for pron, prob in entry:
             if word not in ref_lexicon or pron not in ref_lexicon[word]:
                 print('{0} {1}'.format(word, pron), file=args.pruned_prons_handle)

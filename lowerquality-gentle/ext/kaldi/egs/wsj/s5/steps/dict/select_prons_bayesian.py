@@ -4,7 +4,6 @@
 # Apache 2.0.
 
 from __future__ import print_function
-from __future__ import division
 from collections import defaultdict
 import argparse
 import sys
@@ -24,7 +23,7 @@ def GetArgs():
                                      "a learned lexicon for words out of the ref. vocab (learned_lexicon_oov),"
                                      "and a lexicon_edits file containing suggested modifications of prons, for"
                                      "words within the ref. vocab (ref_lexicon_edits).",
-                                     epilog = "See steps/dict/learn_lexicon_bayesian.sh for example.")
+                                     epilog = "See steps/dict/learn_lexicon.sh for example.")
     parser.add_argument("--prior-mean", type = str, default = "0,0,0",
                         help = "Mean of priors (summing up to 1) assigned to three exclusive n"
                         "pronunciatio sources: reference lexicon, g2p, and phonetic decoding. We "
@@ -163,7 +162,7 @@ def FilterPhoneticDecodingLexicon(args, phonetic_decoding_lexicon, stats):
     for line in args.silence_file_handle:
         silphones.add(line.strip())
     rejected_candidates = set()
-    for word, prons in phonetic_decoding_lexicon.items():
+    for word, prons in phonetic_decoding_lexicon.iteritems():
         for pron in prons:
             for phone in pron.split():
                 if phone in silphones:
@@ -195,7 +194,7 @@ def ComputePriorCounts(args, counts, ref_lexicon, g2p_lexicon, phonetic_decoding
             prior_mean[2] = 0
         prior_mean_sum = sum(prior_mean)
         try:
-            prior_mean = [float(t) / prior_mean_sum for t in prior_mean] 
+            prior_mean = [t / prior_mean_sum for t in prior_mean] 
         except ZeroDivisionError:
             print('WARNING: word {} appears in train_counts but not in any lexicon.'.format(word), file=sys.stderr)
         prior_counts[word] = [t * args.prior_counts_tot for t in prior_mean] 
@@ -207,20 +206,20 @@ def ComputePosteriors(args, stats, ref_lexicon, g2p_lexicon, phonetic_decoding_l
     # The soft-counts were augmented by a user-specified prior count, according the source 
     # (ref/G2P/phonetic-decoding) of this pronunciation.
 
-    for word, prons in ref_lexicon.items():
+    for word, prons in ref_lexicon.iteritems():
         for pron in prons:
             # c is the augmented soft count (observed count + prior count)
-            c = float(prior_counts[word][0]) / len(ref_lexicon[word]) + stats.get((word, pron), 0)
+            c = prior_counts[word][0] / len(ref_lexicon[word]) + stats.get((word, pron), 0)
             posteriors[word].append((pron, c))
 
-    for word, prons in g2p_lexicon.items():
+    for word, prons in g2p_lexicon.iteritems():
         for pron in prons:
-            c = float(prior_counts[word][1]) / len(g2p_lexicon[word]) + stats.get((word, pron), 0)
+            c = prior_counts[word][1] / len(g2p_lexicon[word]) + stats.get((word, pron), 0)
             posteriors[word].append((pron, c))
 
-    for word, prons in phonetic_decoding_lexicon.items():
+    for word, prons in phonetic_decoding_lexicon.iteritems():
         for pron in prons:
-            c = float(prior_counts[word][2]) / len(phonetic_decoding_lexicon[word]) + stats.get((word, pron), 0)
+            c = prior_counts[word][2] / len(phonetic_decoding_lexicon[word]) + stats.get((word, pron), 0)
             posteriors[word].append((pron, c))
 
     num_prons_from_ref = sum(len(ref_lexicon[i]) for i in ref_lexicon)
@@ -240,10 +239,10 @@ def ComputePosteriors(args, stats, ref_lexicon, g2p_lexicon, phonetic_decoding_l
         # each entry is a pair: (prounciation, count)
         count_sum[word] = sum([entry[1] for entry in posteriors[word]])
     
-    for word, entry in posteriors.items():
+    for word, entry in posteriors.iteritems():
         new_entry = []
         for pron, count in entry:      
-            post = float(count) / count_sum[word]
+            post = count / count_sum[word]
             new_entry.append((pron, post))
             source = 'R'
             if word in g2p_lexicon and pron in g2p_lexicon[word]:
@@ -261,7 +260,7 @@ def SelectPronsBayesian(args, counts, posteriors, ref_lexicon, g2p_lexicon, phon
     phonetic_decoding_selected = 0
     learned_lexicon = defaultdict(set)
 
-    for word, entry in posteriors.items():
+    for word, entry in posteriors.iteritems():
         num_variants = 0
         post_tot = 0.0
         variants_counts = args.variants_counts
@@ -412,7 +411,7 @@ def WriteEditsAndSummary(args, learned_lexicon, ref_lexicon, phonetic_decoding_l
     print('    {} words\' selected prons came from G2P only.'.format(num_infreq_oovs_from_g2p), file=sys.stderr) 
 
 def WriteLearnedLexiconOov(learned_lexicon, ref_lexicon, file_handle):
-    for word, prons in learned_lexicon.items():
+    for word, prons in learned_lexicon.iteritems():
         if word not in ref_lexicon:
             for pron in prons:
                 print('{0} {1}'.format(word, pron), file=file_handle)

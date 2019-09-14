@@ -564,9 +564,7 @@ void LatticeSimpleDecoder::ProcessNonemitting() {
   for (unordered_map<StateId, Token*>::iterator iter = cur_toks_.begin();
        iter != cur_toks_.end();
        ++iter) {
-    StateId state = iter->first;
-    if (fst_.NumInputEpsilons(state) != 0)
-      queue.push_back(state);
+    queue.push_back(iter->first);
     best_cost = std::min(best_cost, iter->second->tot_cost);
   }
   if (queue.empty()) {
@@ -606,7 +604,7 @@ void LatticeSimpleDecoder::ProcessNonemitting() {
             
           // "changed" tells us whether the new token has a different
           // cost from before, or is new [if so, add into queue].
-          if (changed && fst_.NumInputEpsilons(arc.nextstate) != 0)
+          if (changed)
             queue.push_back(arc.nextstate);
         }
       }

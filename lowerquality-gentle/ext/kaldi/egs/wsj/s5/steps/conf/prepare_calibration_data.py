@@ -3,7 +3,6 @@
 # Copyright 2015  Brno University of Technology (author: Karel Vesely)
 # Apache 2.0
 
-from __future__ import division
 import sys, math
 
 from optparse import OptionParser
@@ -83,7 +82,7 @@ if o.lattice_depth:
   depths = dict()
   for l in open(o.lattice_depth):
     utt,d = l.split(' ',1)
-    depths[utt] = [int(i) for i in d.split()]
+    depths[utt] = map(int,d.split())
 
 # Load the 'word_categories' mapping for categorical input features derived from 'lang/words.txt',
 wrd_to_cat = [ l.split() for l in open(word_categories_file) ]

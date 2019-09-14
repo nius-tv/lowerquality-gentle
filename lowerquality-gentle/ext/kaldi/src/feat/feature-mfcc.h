@@ -40,8 +40,7 @@ struct MfccOptions {
   MelBanksOptions mel_opts;
   int32 num_ceps;  // e.g. 13: num cepstral coeffs, counting zero.
   bool use_energy;  // use energy; else C0
-  BaseFloat energy_floor;  // 0 by default; set to a value like 1.0 or 0.1 if
-                           // you disable dithering.
+  BaseFloat energy_floor;
   bool raw_energy;  // If true, compute energy before preemphasis and windowing
   BaseFloat cepstral_lifter;  // Scaling factor on cepstra for HTK compatibility.
                               // if 0.0, no liftering is done.
@@ -54,7 +53,7 @@ struct MfccOptions {
                   // but for 8khz-sampled data, 15 may be better.
                   num_ceps(13),
                   use_energy(true),
-                  energy_floor(0.0),
+                  energy_floor(0.0),  // not in log scale: a small value e.g. 1.0e-10
                   raw_energy(true),
                   cepstral_lifter(22.0),
                   htk_compat(false) {}
@@ -67,9 +66,7 @@ struct MfccOptions {
     opts->Register("use-energy", &use_energy,
                    "Use energy (not C0) in MFCC computation");
     opts->Register("energy-floor", &energy_floor,
-                   "Floor on energy (absolute, not relative) in MFCC computation. "
-                   "Only makes a difference if --use-energy=true; only necessary if "
-                   "--dither=0.0.  Suggested values: 0.1 or 1.0");
+                   "Floor on energy (absolute, not relative) in MFCC computation");
     opts->Register("raw-energy", &raw_energy,
                    "If true, compute energy before preemphasis and windowing");
     opts->Register("cepstral-lifter", &cepstral_lifter,
@@ -96,7 +93,7 @@ class MfccComputer {
 
   int32 Dim() const { return opts_.num_ceps; }
 
-  bool NeedRawLogEnergy() const { return opts_.use_energy && opts_.raw_energy; }
+  bool NeedRawLogEnergy() { return opts_.use_energy && opts_.raw_energy; }
 
   /**
      Function that computes one frame of features from
@@ -119,7 +116,7 @@ class MfccComputer {
      @param [out] feature  Pointer to a vector of size this->Dim(), to which
          the computed feature will be written.
   */
-  void Compute(BaseFloat signal_raw_log_energy,
+  void Compute(BaseFloat signal_log_energy,
                BaseFloat vtln_warp,
                VectorBase<BaseFloat> *signal_frame,
                VectorBase<BaseFloat> *feature);
@@ -129,7 +126,6 @@ class MfccComputer {
   // disallow assignment.
   MfccComputer &operator = (const MfccComputer &in);
 
- protected:
   const MelBanks *GetMelBanks(BaseFloat vtln_warp);
 
   MfccOptions opts_;

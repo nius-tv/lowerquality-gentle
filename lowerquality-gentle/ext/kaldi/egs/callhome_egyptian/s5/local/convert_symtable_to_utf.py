@@ -1,4 +1,3 @@
-from __future__ import print_function
 #!/usr/bin/env py
 
 # Converts a romanized ECA word list (symbol table) to
@@ -8,9 +7,9 @@ import sys
 import codecs
 
 if len(sys.argv) < 3:
-    print("USAGE: local/convert_symtable_to_utf.py [SYMTABLE] [ECA-LEXICON]")
-    print("E.g., local/convert_symtable_to_utf.py data/lang/words.txt \
-                /export/corpora/LDC/LDC99L22")
+    print "USAGE: local/convert_symtable_to_utf.py [SYMTABLE] [ECA-LEXICON]"
+    print "E.g., local/convert_symtable_to_utf.py data/lang/words.txt \
+                /export/corpora/LDC/LDC99L22"
     sys.exit(1)
 
 # Note that the ECA lexicon's default encoding is ISO-8859-6, not UTF8

@@ -16,24 +16,16 @@
 ## Note: If necessary, rewrite the "cat" command used in the followings
 ## to locate the .wav file path.
 
-. ./path.sh
+. path.sh
 set -e # exit on error
 
 #check existing directories
-if [ $# -ne 1 ] && [ $# -ne 2 ]; then
-  echo "Usage: csj_data_prep.sh <csj-data dir> [<mode_number>]"
-  echo " mode_number can be 0, 1, 2, 3, (0=default using academic lecture and other data, 1=using academic lecture data,"
-  echo "                                 2=using all data except for dialog data, 3=using all data)"
+if [ $# != 1 ]; then
+  echo "Usage: csj_data_prep.sh <csj-data dir>"
   exit 1;
 fi
 
 CSJ=$1
-mode=0
-
-if [ $# -eq 2 ]; then
-  mode=$2
-fi
-
 
 dir=data/local/train
 mkdir -p $dir
@@ -45,25 +37,14 @@ if [ ! -d $CSJ ]; then
 fi
 
 # CSJ dictionary file check
-if [ ! -f $dir/lexicon.txt ]; then
-  cp $CSJ/lexicon/lexicon.txt $dir || exit 1;
-fi
+[ ! -f $dir/lexicon.txt ] && cp $CSJ/lexicon/lexicon.txt $dir || exit 1;
 
 ### Config of using wav data that relates with acoustic model training ###
-if [ $mode -eq 3 ]
-then
-  cat $CSJ/*/*/*-wav.list 2>/dev/null | sort > $dir/wav.flist # Using All data
-elif [ $mode -eq 2 ]
-then
-  cat $CSJ/*/{A*,M*,R*,S*}/*-wav.list 2>/dev/null | sort > $dir/wav.flist # Using All data except for "dialog" data
-elif [ $mode -eq 1 ]
-then 
-  cat $CSJ/*/A*/*-wav.list 2>/dev/null | sort > $dir/wav.flist # Using "Academic lecture" data
-else
-  # cat $CSJ/*/{A*,M*}/*-wav.list 2>/dev/null | sort > $dir/wav.flist # Using "Academic lecture" and "other" data
-  cat $CSJ/*/{A,M}*/*-wav.list 2>/dev/null | sort > $dir/wav.flist # Using "Academic lecture" and "other" data
-fi
-
+#cat $CSJ/*/*/*-wav.list 2>/dev/null | sort > $dir/wav.flist # Using All data
+#cat $CSJ/*/{A*,M*,R*,S*}/*-wav.list 2>/dev/null | sort > $dir/wav.flist # Using All data except for "dialog" data
+#cat $CSJ/*/{A*,M*}/*-wav.list 2>/dev/null | sort > $dir/wav.flist # Using "Academic lecture" and "other" data
+#cat $CSJ/*/A*/*-wav.list 2>/dev/null | sort > $dir/wav.flist # Using "Academic lecture" data
+cat $CSJ/*/{A,M}*/*-wav.list 2>/dev/null | sort > $dir/wav.flist # Using "Academic lecture" and "other" data
 
 n=`cat $dir/wav.flist | wc -l`
 

@@ -40,7 +40,7 @@ namespace kaldi {
     - \subpage dnn3_code_data_types
     - \subpage dnn3_code_compilation
     - \subpage dnn3_code_optimization
-    - \subpage dnn3_scripts_context
+    - [documentation on scripts to come]
 
 
 */

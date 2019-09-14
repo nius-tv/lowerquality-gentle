@@ -69,8 +69,7 @@ void AlignUtteranceWrapper(
     int32 *num_error,
     int32 *num_retried,
     double *tot_like,
-    int64 *frame_count,
-    BaseFloatVectorWriter *per_frame_acwt_writer = NULL);
+    int64 *frame_count);
 
 
 
@@ -95,13 +94,8 @@ void ModifyGraphForCarefulAlignment(
 /// other obvious place to put it.  If determinize == false, it writes to
 /// lattice_writer, else to compact_lattice_writer.  The writers for
 /// alignments and words will only be written to if they are open.
-///
-/// Caution: this will only link correctly if FST is either fst::Fst<fst::StdArc>,
-/// or fst::GrammarFst, as the template function is defined in the .cc file and
-/// only instantiated for those two types.
-template <typename FST>
 bool DecodeUtteranceLatticeFaster(
-    LatticeFasterDecoderTpl<FST> &decoder, // not const but is really an input.
+    LatticeFasterDecoder &decoder, // not const but is really an input.
     DecodableInterface &decodable, // not const but is really an input.
     const TransitionModel &trans_model,
     const fst::SymbolTable *word_syms,
@@ -115,12 +109,12 @@ bool DecodeUtteranceLatticeFaster(
     LatticeWriter *lattice_writer,
     double *like_ptr);  // puts utterance's likelihood in like_ptr on success.
 
-
 /// This class basically does the same job as the function
 /// DecodeUtteranceLatticeFaster, but in a way that allows us
-/// to build a multi-threaded command line program more easily.
-/// The main computation takes place in operator (), and the output
-/// happens in the destructor.
+/// to build a multi-threaded command line program more easily,
+/// using code in ../thread/kaldi-task-sequence.h.  The main
+/// computation takes place in operator (), and the output happens
+/// in the destructor.
 class DecodeUtteranceLatticeFasterClass {
  public:
   // Initializer sets various variables.
@@ -131,7 +125,7 @@ class DecodeUtteranceLatticeFasterClass {
       DecodableInterface *decodable,
       const TransitionModel &trans_model,
       const fst::SymbolTable *word_syms,
-      const std::string &utt,
+      std::string utt,
       BaseFloat acoustic_scale,
       bool determinize,
       bool allow_partial,

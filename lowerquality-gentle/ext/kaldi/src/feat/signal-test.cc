@@ -23,7 +23,7 @@
 
 namespace kaldi {
 
-void UnitTestFFTbasedBlockConvolution() {
+void UnitTestBlockConvolution() {
   for (int32 i = 0; i < 5; i++) {
     int32 signal_length = 400000 + Rand() % 40000;
     int32 filter_length = 1000 + Rand() % 100;
@@ -38,7 +38,7 @@ void UnitTestFFTbasedBlockConvolution() {
   }
 }
 
-void UnitTestFFTbasedConvolution() {
+void UnitTestConvolution() {
   for (int32 i = 0; i < 5; i++) {
     int32 signal_length = 4000 + Rand() % 400;
     int32 filter_length = 10 + Rand() % 10;
@@ -48,7 +48,7 @@ void UnitTestFFTbasedConvolution() {
     filter.SetRandn();
     Vector<BaseFloat> signal_test(signal);
     ConvolveSignals(filter, &signal_test);
-    FFTbasedConvolveSignals(filter, &signal);
+    FFTbasedBlockConvolveSignals(filter, &signal);
     AssertEqual(signal, signal_test, 0.0001 * signal.Dim());
   }
 }
@@ -56,8 +56,8 @@ void UnitTestFFTbasedConvolution() {
 
 int main() {
   using namespace kaldi;
-  UnitTestFFTbasedConvolution();
-  UnitTestFFTbasedBlockConvolution();
+  UnitTestBlockConvolution();
+  UnitTestConvolution();
   KALDI_LOG << "Tests succeeded.";
 
 }

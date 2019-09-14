@@ -6,6 +6,6 @@
 """ This package contains modules and subpackages used in kaldi scripts.
 """
 
-from . import common
+import common
 
 __all__ = ["common"]

@@ -3,32 +3,31 @@
 # Apache 2.0.
 set -e
 stage=0
-# Location of aspire data.
-aspire_data=/export/corpora/LDC/LDC2017S21/IARPA-ASpIRE-Dev-Sets-v2.0/data  # for JHU
-
+aspire_data=/export/corpora5/ASpIRE/
 mean_rms=0.0417 # determined from the mean rms value of data/train_rvb/mean_rms
 . ./path.sh # Needed for KALDI_ROOT
 
 . utils/parse_options.sh
 
-dev_transcript=$aspire_data/dev_and_dev_test_STM_files
-dev_audio=$aspire_data/dev_and_dev_test_audio/ASpIRE_single_dev
-test_audio=$aspire_data/dev_and_dev_test_audio/ASpIRE_single_dev_test
-if [ ! -f $aspire_data/my_english.glm ]; then
+dev_transcript=$aspire_data/ASpIRE_single_dev_transcript
+dev_audio=$aspire_data/ASpIRE_single_dev
+test_audio=$aspire_data/ASpIRE_single_dev_test
+eval_audio=$aspire_data/ASpIRE_single_eval
+if [ ! -f $aspire_data/glm ]; then
   echo "Expected to find the glm file, provided in ASpIRE challenge."
   echo "Please provide the glm file in $aspire_data." && exit 1;
 fi
-
 # (1) Get transcripts in one file, and clean them up ..
 tmpdir=`pwd`/data/local/data
 mkdir -p $tmpdir
 if [ $stage -le 0 ]; then
 
-  find $dev_transcript/ -name 'dev.stm'  > $tmpdir/transcripts.flist
+  find $dev_transcript/ -name '*.stm'  > $tmpdir/transcripts.flist
   find $dev_audio/ -name '*.wav'  > $tmpdir/wav.flist
   find $test_audio/ -name '*.wav'  > $tmpdir/wav_test.flist
+  find $eval_audio/ -name '*.wav'  > $tmpdir/wav_eval.flist
 
-  n=$(awk '{print $1}' $(cat $tmpdir/transcripts.flist) | uniq | wc -l)
+  n=`cat $tmpdir/transcripts.flist | wc -l`
   if [ $n -ne 30 ]; then
     echo "Expected to find 30 transcript files in the aspire_single_dev_transcript directory, found $n"
     exit 1;
@@ -41,6 +40,11 @@ if [ $stage -le 0 ]; then
   n=`cat $tmpdir/wav_test.flist | wc -l`
   if [ $n -ne 60 ]; then
     echo "Expected to find 60 .wav files in the aspire_single_dev_test data, found $n"
+    exit 1;
+  fi
+  n=`cat $tmpdir/wav_eval.flist | wc -l`
+  if [ $n -ne 120 ]; then
+    echo "Expected to find 120 .wav files in the aspire_single_eval data, found $n"
     exit 1;
   fi
 fi
@@ -101,7 +105,7 @@ fi
 if [ $stage -le 3 ]; then
   for f in `cat $tmpdir/wav.flist`; do
     # convert to absolute path
-    utils/make_absolute.sh $f
+    readlink -e $f
   done > $tmpdir/wav_abs.flist
   
   cat $tmpdir/wav_abs.flist | python -c "
@@ -118,17 +122,17 @@ for line in sys.stdin.readlines():
   print '{0} sox --vol {1} {2} -r 8000 -t wav - |'.format(file_id, out_rms, line)
 "| sort -k1,1 -u  > $dev/wav.scp || exit 1;
   cat $dev/wav.scp |awk '{printf("%s %s A\n", $1, $1)}' > $dev/reco2file_and_channel
-  cp $aspire_data/my_english.glm $dev/glm
+  cp $aspire_data/glm $dev
 fi
 
-# prepare test data
+# prepare the eval and test data
 if [ $stage -le 4 ]; then
-  for dataset in test ; do
+  for dataset in test eval; do
     test=data/${dataset}_aspire
     mkdir -p $test
     for f in `cat $tmpdir/wav_${dataset}.flist`; do
       # convert to absolute path
-      utils/make_absolute.sh $f
+      readlink -e $f
     done > $tmpdir/wav_${dataset}_abs.flist
     cat $tmpdir/wav_${dataset}_abs.flist | \
     python -c "
@@ -149,7 +153,7 @@ for line in lines:
     cat $test/wav.scp |awk '{printf("%s %s\n", $1, $1)}' > $test/utt2spk
     cat $test/wav.scp |awk '{printf("%s %s\n", $1, $1)}' > $test/spk2utt
     cat $test/wav.scp |awk '{printf("%s %s A\n", $1, $1)}' > $test/reco2file_and_channel
-    cp $aspire_data/my_english.glm $test/glm
+    cp $aspire_data/glm $test
   done
 fi
 

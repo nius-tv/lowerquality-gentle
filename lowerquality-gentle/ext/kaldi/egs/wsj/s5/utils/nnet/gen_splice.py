@@ -18,15 +18,11 @@
 # ./gen_splice.py
 # generates <splice> Component
 
-from __future__ import print_function
 from math import *
 import sys
 
 
 from optparse import OptionParser
-
-def print_on_same_line(text):
-    print(text, end=' ')
 
 parser = OptionParser()
 parser.add_option('--fea-dim', dest='dim_in', help='feature dimension')
@@ -44,12 +40,12 @@ splice_step=int(options.splice_step)
 
 dim_out=(2*splice+1)*dim_in
 
-print('<splice> {0} {1}'.format(dim_out, dim_in))
-print_on_same_line('[')
+print '<splice>', dim_out, dim_in
+print '[',
 
-splice_vec = list(range(-splice*splice_step, splice*splice_step+1, splice_step))
+splice_vec = range(-splice*splice_step, splice*splice_step+1, splice_step)
 for idx in range(len(splice_vec)):
-    print_on_same_line(splice_vec[idx])
+    print splice_vec[idx],
 
-print(']')
+print ']'
 

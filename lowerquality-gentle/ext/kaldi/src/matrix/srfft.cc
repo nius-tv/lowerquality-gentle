@@ -212,8 +212,7 @@ void SplitRadixComplexFft<Real>::ComputeRecursive(Real *xr, Real *xi, MatrixInde
 
   MatrixIndexT    m, m2, m4, m8, nel, n;
   Real    *xr1, *xr2, *xi1, *xi2;
-  Real    *cn = nullptr, *spcn = nullptr, *smcn = nullptr, *c3n = nullptr,
-    *spc3n = nullptr, *smc3n = nullptr;
+  Real    *cn, *spcn, *smcn, *c3n, *spc3n, *smc3n;
   Real    tmp1, tmp2;
   Real   sqhalf = M_SQRT1_2;
 

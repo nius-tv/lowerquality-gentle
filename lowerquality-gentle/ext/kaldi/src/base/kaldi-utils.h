@@ -46,14 +46,10 @@
 #endif
 #endif
 
-#if defined(_MSC_VER)
+#ifdef _MSC_VER
 #  define KALDI_MEMALIGN(align, size, pp_orig) \
   (*(pp_orig) = _aligned_malloc(size, align))
 #  define KALDI_MEMALIGN_FREE(x) _aligned_free(x)
-#elif defined(__CYGWIN__)
-#  define KALDI_MEMALIGN(align, size, pp_orig) \
-  (*(pp_orig) = aligned_alloc(align, size))
-#  define KALDI_MEMALIGN_FREE(x) free(x)
 #else
 #  define KALDI_MEMALIGN(align, size, pp_orig) \
      (!posix_memalign(pp_orig, align, size) ? *(pp_orig) : NULL)
@@ -117,7 +113,8 @@ void Sleep(float seconds);
           (reinterpret_cast<char*>(&a))[1]=t;}
 
 
-// Makes copy constructor and operator= private.
+// Makes copy constructor and operator= private.  Same as in compat.h of OpenFst
+// toolkit.
 #define KALDI_DISALLOW_COPY_AND_ASSIGN(type)    \
   type(const type&);                  \
   void operator = (const type&)
@@ -138,11 +135,8 @@ template<> class KaldiCompileTimeAssert<true> {
   KaldiCompileTimeAssert<std::numeric_limits<F>::is_specialized \
                 && !std::numeric_limits<F>::is_integer>::Check()
 
-#if defined(_MSC_VER)
+#ifdef _MSC_VER
 #define KALDI_STRCASECMP _stricmp
-#elif defined(__CYGWIN__)
-#include <strings.h>
-#define KALDI_STRCASECMP strcasecmp
 #else
 #define KALDI_STRCASECMP strcasecmp
 #endif
@@ -152,4 +146,14 @@ template<> class KaldiCompileTimeAssert<true> {
 #  define KALDI_STRTOLL(cur_cstr, end_cstr) strtoll(cur_cstr, end_cstr, 10);
 #endif
 
+#define KALDI_STRTOD(cur_cstr, end_cstr) strtod(cur_cstr, end_cstr)
+
+#ifdef _MSC_VER
+#  define KALDI_STRTOF(cur_cstr, end_cstr) \
+    static_cast<float>(strtod(cur_cstr, end_cstr));
+#else
+#  define KALDI_STRTOF(cur_cstr, end_cstr) strtof(cur_cstr, end_cstr);
+#endif
+
 #endif  // KALDI_BASE_KALDI_UTILS_H_
+

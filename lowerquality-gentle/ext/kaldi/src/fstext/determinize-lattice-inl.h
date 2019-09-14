@@ -235,7 +235,7 @@ template<class IntType> class LatticeStringRepository {
     }
   }
 
-  KALDI_DISALLOW_COPY_AND_ASSIGN(LatticeStringRepository);
+  DISALLOW_COPY_AND_ASSIGN(LatticeStringRepository);
   Entry *new_entry_; // We always have a pre-allocated Entry ready to use,
                      // to avoid unnecessary news and deletes.
   SetType set_;
@@ -510,7 +510,7 @@ template<class Weight, class IntType> class LatticeDeterminizer {
         if (!CheckMemoryUsage()) return false;
       }
       return (determinized_ = true);
-    } catch (const std::bad_alloc &) {
+    } catch (std::bad_alloc) {
       int32 repo_size = repository_.MemSize(),
           arcs_size = num_arcs_ * sizeof(TempArc),
           elems_size = num_elems_ * sizeof(Element),
@@ -520,7 +520,7 @@ template<class Weight, class IntType> class LatticeDeterminizer {
           << " (repo,arcs,elems) = ("
           << repo_size << "," << arcs_size << "," << elems_size << ")";
       return (determinized_ = false);
-    } catch (const std::runtime_error &) {
+    } catch (std::runtime_error) {
       KALDI_WARN << "Caught exception doing lattice determinization";
       return (determinized_ = false);
     }
@@ -1210,7 +1210,7 @@ template<class Weight, class IntType> class LatticeDeterminizer {
     }
   }
 
-  KALDI_DISALLOW_COPY_AND_ASSIGN(LatticeDeterminizer);
+  DISALLOW_COPY_AND_ASSIGN(LatticeDeterminizer);
 
 
   vector<vector<Element>* > output_states_; // maps from output state to

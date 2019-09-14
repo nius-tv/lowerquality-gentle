@@ -35,6 +35,10 @@
 #include "nnet/nnet-average-pooling-component.h"
 #include "nnet/nnet-max-pooling-component.h"
 
+#include "nnet/nnet-convolutional-2d-component.h"
+#include "nnet/nnet-average-pooling-2d-component.h"
+#include "nnet/nnet-max-pooling-2d-component.h"
+
 #include "nnet/nnet-lstm-projected.h"
 #include "nnet/nnet-blstm-projected.h"
 #include "nnet/nnet-recurrent.h"
@@ -52,6 +56,7 @@ const struct Component::key_value Component::kMarkerMap[] = {
   { Component::kAffineTransform, "<AffineTransform>" },
   { Component::kLinearTransform, "<LinearTransform>" },
   { Component::kConvolutionalComponent, "<ConvolutionalComponent>" },
+  { Component::kConvolutional2DComponent, "<Convolutional2DComponent>" },
   { Component::kLstmProjected, "<LstmProjected>" },
   { Component::kLstmProjected, "<LstmProjectedStreams>" }, // bwd compat.
   { Component::kBlstmProjected, "<BlstmProjected>" },
@@ -72,7 +77,9 @@ const struct Component::key_value Component::kMarkerMap[] = {
   { Component::kRescale, "<Rescale>" },
   { Component::kKlHmm, "<KlHmm>" },
   { Component::kAveragePoolingComponent, "<AveragePoolingComponent>" },
+  { Component::kAveragePooling2DComponent, "<AveragePooling2DComponent>" },
   { Component::kMaxPoolingComponent, "<MaxPoolingComponent>" },
+  { Component::kMaxPooling2DComponent, "<MaxPooling2DComponent>" },
   { Component::kSentenceAveragingComponent, "<SentenceAveragingComponent>" },
   { Component::kSimpleSentenceAveragingComponent, "<SimpleSentenceAveragingComponent>" },
   { Component::kFramePoolingComponent, "<FramePoolingComponent>" },
@@ -119,6 +126,9 @@ Component* Component::NewComponentOfType(ComponentType comp_type,
       break;
     case Component::kConvolutionalComponent :
       ans = new ConvolutionalComponent(input_dim, output_dim);
+      break;
+    case Component::kConvolutional2DComponent :
+      ans = new Convolutional2DComponent(input_dim, output_dim);
       break;
     case Component::kLstmProjected :
       ans = new LstmProjected(input_dim, output_dim);
@@ -180,8 +190,14 @@ Component* Component::NewComponentOfType(ComponentType comp_type,
     case Component::kAveragePoolingComponent :
       ans = new AveragePoolingComponent(input_dim, output_dim);
       break;
+    case Component::kAveragePooling2DComponent :
+      ans = new AveragePooling2DComponent(input_dim, output_dim);
+      break;
     case Component::kMaxPoolingComponent :
       ans = new MaxPoolingComponent(input_dim, output_dim);
+      break;
+    case Component::kMaxPooling2DComponent :
+      ans = new MaxPooling2DComponent(input_dim, output_dim);
       break;
     case Component::kFramePoolingComponent :
       ans = new FramePoolingComponent(input_dim, output_dim);

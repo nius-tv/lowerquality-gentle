@@ -1,8 +1,4 @@
 #!/usr/bin/env python
-
-# Copyright 2015  Minhua Wu
-# Apache 2.0
-
 # convert acronyms in swbd transcript to fisher convention
 # accoring to first two columns in the input acronyms mapping
 

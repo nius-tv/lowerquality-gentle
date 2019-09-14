@@ -10,15 +10,15 @@
 
 # This script was modified from ../../sre08/v1/sid/train_diag_ubm.sh.  It trains
 # a diagonal UBM on top of features processed with apply-cmvn-online and then
-# transformed with an LDA+MLLT or PCA matrix (obtained from the source
-# directory).  This script does not use the trained model from the source
-# directory to initialize the diagonal GMM; instead, we initialize the GMM using
+# transformed with an LDA+MLLT matrix (obtained from the source directory).
+# This script does not use the trained model from the source directory to
+# initialize the diagonal GMM; instead, we initialize the GMM using
 # gmm-global-init-from-feats, which sets the means to random data points and
 # then does some iterations of E-M in memory.  After the in-memory
-# initialization we train for a few iterations in parallel.  Note that if an
-# LDA+MLLT transform matrix is used, there will be a slight mismatch in that the
-# source LDA+MLLT matrix (final.mat) will have been estimated using standard
-# CMVN, and we're using online CMVN.  We don't think this will have much effect.
+# initialization we train for a few iterations in parallel.
+# Note that there is a slight mismatch in that the source LDA+MLLT matrix
+# (final.mat) will have been estimated using standard CMVN, and we're using
+# online CMVN.  We don't think this will have much effect.
 
 
 # Begin configuration section.
@@ -35,7 +35,7 @@ subsample=2 # subsample all features with this periodicity, in the main E-M phas
 cleanup=true
 min_gaussian_weight=0.0001
 remove_low_count_gaussians=true # set this to false if you need #gauss to stay fixed.
-num_threads=16
+num_threads=32
 parallel_opts=  # ignored now.
 online_cmvn_config=conf/online_cmvn.conf
 # End configuration section.
@@ -58,7 +58,7 @@ if [ $# != 4 ]; then
   echo "  --stage <stage|-2>                               # stage to do partial re-run from."
   echo "  --num-gselect <n|30>                             # Number of Gaussians per frame to"
   echo "                                                   # limit computation to, for speed"
-  echo " --subsample <n|5>                                 # In main E-M phase, use every n"
+  echo " --subsample <n|5>                                 # In main E-M phase, use every n" 
   echo "                                                   # frames (a speedup)"
   echo "  --num-frames <n|500000>                          # Maximum num-frames to keep in memory"
   echo "                                                   # for model initialization"
@@ -88,15 +88,6 @@ utils/split_data.sh $data $nj || exit 1;
 for f in $data/feats.scp "$online_cmvn_config" $srcdir/splice_opts $srcdir/final.mat; do
    [ ! -f "$f" ] && echo "$0: expecting file $f to exist" && exit 1
 done
-
-if [ -d "$dir" ]; then
-  bak_dir=$(mktemp -d ${dir}/backup.XXX);
-  echo "$0: Directory $dir already exists. Backing up diagonal UBM in ${bak_dir}";
-  for f in $dir/final.mat $dir/final.dubm $dir/online_cmvn.conf $dir/global_cmvn.stats; do
-    [ -f "$f" ] && mv $f ${bak_dir}/
-  done
-  [ -d "$dir/log" ] && mv $dir/log ${bak_dir}/
-fi
 
 splice_opts=$(cat $srcdir/splice_opts)
 cp $srcdir/splice_opts $dir/ || exit 1;
@@ -155,16 +146,10 @@ for x in `seq 0 $[$num_iters-1]`; do
     $cmd $dir/log/update.$x.log \
       gmm-global-est $opt --min-gaussian-weight=$min_gaussian_weight $dir/$x.dubm "gmm-global-sum-accs - $dir/$x.*.acc|" \
       $dir/$[$x+1].dubm || exit 1;
-
-    if $cleanup; then
-      rm $dir/$x.*.acc $dir/$x.dubm
-    fi
+    rm $dir/$x.*.acc $dir/$x.dubm
   fi
 done
 
-if $cleanup; then
-  rm $dir/gselect.*.gz
-fi
-
+rm $dir/gselect.*.gz
 mv $dir/$num_iters.dubm $dir/final.dubm || exit 1;
 exit 0;

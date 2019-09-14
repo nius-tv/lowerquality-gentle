@@ -1,4 +1,3 @@
-from __future__ import print_function
 # Copyright 2015   David Snyder
 # Apache 2.0.
 #
@@ -13,4 +12,4 @@ for line in trials:
   spkrutt2target[spkr+utt]=target
 for line in scores:
   spkr, utt, score = line.strip().split()
-  print("{} {}".format(score, spkrutt2target[spkr+utt]))
+  print score, spkrutt2target[spkr+utt]

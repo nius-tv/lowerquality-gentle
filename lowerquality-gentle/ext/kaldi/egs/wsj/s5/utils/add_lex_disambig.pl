@@ -122,7 +122,6 @@ foreach $l (@L) {
     if ($sil_probs) {
       shift @A; # Remove silprob
       shift @A; # Remove silprob
-      shift @A; # Remove silprob, there three numbers for sil_probs
     }
     while(@A > 0) {
         pop @A;  # Remove last phone

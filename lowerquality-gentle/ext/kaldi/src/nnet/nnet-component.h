@@ -51,6 +51,7 @@ class Component {
     kAffineTransform,
     kLinearTransform,
     kConvolutionalComponent,
+    kConvolutional2DComponent,
     kLstmProjected,
     kBlstmProjected,
     kRecurrentComponent,
@@ -78,7 +79,9 @@ class Component {
     kSentenceAveragingComponent, /* deprecated */
     kSimpleSentenceAveragingComponent,
     kAveragePoolingComponent,
+    kAveragePooling2DComponent,
     kMaxPoolingComponent,
+    kMaxPooling2DComponent,
     kFramePoolingComponent,
     kParallelComponent,
     kMultiBasisComponent

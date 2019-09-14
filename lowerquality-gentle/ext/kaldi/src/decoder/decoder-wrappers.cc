@@ -19,9 +19,6 @@
 
 #include "decoder/decoder-wrappers.h"
 #include "decoder/faster-decoder.h"
-#include "decoder/lattice-faster-decoder.h"
-#include "decoder/grammar-fst.h"
-#include "lat/lattice-functions.h"
 
 namespace kaldi {
 
@@ -34,7 +31,7 @@ DecodeUtteranceLatticeFasterClass::DecodeUtteranceLatticeFasterClass(
     DecodableInterface *decodable,
     const TransitionModel &trans_model,
     const fst::SymbolTable *word_syms,
-    const std::string &utt,
+    std::string utt,
     BaseFloat acoustic_scale,
     bool determinize,
     bool allow_partial,
@@ -197,9 +194,8 @@ DecodeUtteranceLatticeFasterClass::~DecodeUtteranceLatticeFasterClass() {
 
 
 // Takes care of output.  Returns true on success.
-template <typename FST>
 bool DecodeUtteranceLatticeFaster(
-    LatticeFasterDecoderTpl<FST> &decoder, // not const but is really an input.
+    LatticeFasterDecoder &decoder, // not const but is really an input.
     DecodableInterface &decodable, // not const but is really an input.
     const TransitionModel &trans_model,
     const fst::SymbolTable *word_syms,
@@ -295,38 +291,6 @@ bool DecodeUtteranceLatticeFaster(
   return true;
 }
 
-// Instantiate the template above for the two required FST types.
-template bool DecodeUtteranceLatticeFaster(
-    LatticeFasterDecoderTpl<fst::Fst<fst::StdArc> > &decoder,
-    DecodableInterface &decodable,
-    const TransitionModel &trans_model,
-    const fst::SymbolTable *word_syms,
-    std::string utt,
-    double acoustic_scale,
-    bool determinize,
-    bool allow_partial,
-    Int32VectorWriter *alignment_writer,
-    Int32VectorWriter *words_writer,
-    CompactLatticeWriter *compact_lattice_writer,
-    LatticeWriter *lattice_writer,
-    double *like_ptr);
-
-template bool DecodeUtteranceLatticeFaster(
-    LatticeFasterDecoderTpl<fst::GrammarFst> &decoder,
-    DecodableInterface &decodable,
-    const TransitionModel &trans_model,
-    const fst::SymbolTable *word_syms,
-    std::string utt,
-    double acoustic_scale,
-    bool determinize,
-    bool allow_partial,
-    Int32VectorWriter *alignment_writer,
-    Int32VectorWriter *words_writer,
-    CompactLatticeWriter *compact_lattice_writer,
-    LatticeWriter *lattice_writer,
-    double *like_ptr);
-
-
 // Takes care of output.  Returns true on success.
 bool DecodeUtteranceLatticeSimple(
     LatticeSimpleDecoder &decoder, // not const but is really an input.
@@ -382,7 +346,7 @@ bool DecodeUtteranceLatticeSimple(
       for (size_t i = 0; i < words.size(); i++) {
         std::string s = word_syms->Find(words[i]);
         if (s == "")
-          KALDI_ERR << "Word-id " << words[i] << " not in symbol table.";
+          KALDI_ERR << "Word-id " << words[i] <<" not in symbol table.";
         std::cerr << s << ' ';
       }
       std::cerr << '\n';
@@ -455,13 +419,13 @@ void ModifyGraphForCarefulAlignment(
   fst::Concat(fst, fst_rhs);
 }
 
-
+    
 void AlignUtteranceWrapper(
     const AlignConfig &config,
     const std::string &utt,
     BaseFloat acoustic_scale,  // affects scores written to scores_writer, if
                                // present
-    fst::VectorFst<fst::StdArc> *fst,  // non-const in case config.careful ==
+    fst::VectorFst<fst::StdArc> *fst,  // non-const in case config.careful == 
                                        // true.
     DecodableInterface *decodable,  // not const but is really an input.
     Int32VectorWriter *alignment_writer,
@@ -470,8 +434,7 @@ void AlignUtteranceWrapper(
     int32 *num_error,
     int32 *num_retried,
     double *tot_like,
-    int64 *frame_count,
-    BaseFloatVectorWriter *per_frame_acwt_writer) {
+    int64 *frame_count) {
 
   if ((config.retry_beam != 0 && config.retry_beam <= config.beam) ||
       config.beam <= 0.0) {
@@ -485,6 +448,8 @@ void AlignUtteranceWrapper(
     return;
   }
 
+
+  fst::StdArc::Label special_symbol = 0;
   if (config.careful)
     ModifyGraphForCarefulAlignment(fst);
 
@@ -495,7 +460,7 @@ void AlignUtteranceWrapper(
   decoder.Decode(decodable);
 
   bool ans = decoder.ReachedFinal();  // consider only final states.
-
+  
   if (!ans && config.retry_beam != 0.0) {
     if (num_retried != NULL) (*num_retried)++;
     KALDI_WARN << "Retrying utterance " << utt << " with beam "
@@ -512,7 +477,7 @@ void AlignUtteranceWrapper(
     if (num_error != NULL) (*num_error)++;
     return;
   }
-
+  
   fst::VectorFst<LatticeArc> decoded;  // linear FST.
   decoder.GetBestPath(&decoded);
   if (decoded.NumStates() == 0) {
@@ -520,7 +485,7 @@ void AlignUtteranceWrapper(
     if (num_error != NULL) (*num_error)++;
     return;
   }
-
+    
   std::vector<int32> alignment;
   std::vector<int32> words;
   LatticeWeight weight;
@@ -534,16 +499,10 @@ void AlignUtteranceWrapper(
 
   if (alignment_writer != NULL && alignment_writer->IsOpen())
     alignment_writer->Write(utt, alignment);
-
+  
   if (scores_writer != NULL && scores_writer->IsOpen())
     scores_writer->Write(utt, -(weight.Value1()+weight.Value2()));
-
-  Vector<BaseFloat> per_frame_loglikes;
-  if (per_frame_acwt_writer != NULL && per_frame_acwt_writer->IsOpen()) {
-    GetPerFrameAcousticCosts(decoded, &per_frame_loglikes);
-    per_frame_loglikes.Scale(-1 / acoustic_scale);
-    per_frame_acwt_writer->Write(utt, per_frame_loglikes);
-  }
 }
+
 
 } // end namespace kaldi.

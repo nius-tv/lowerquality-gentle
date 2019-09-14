@@ -11,7 +11,6 @@
 # those strings to determine if it is a target or nontarget
 # utterance. We arbitrarily pick music to be the target class.
 
-from __future__ import print_function
 import sys
 utt2score = open(sys.argv[1], 'r').readlines()
 for i in range(0, len(utt2score)):
@@ -20,4 +19,4 @@ for i in range(0, len(utt2score)):
     type = "target"
   else:
     type = "nontarget"
-  print(score, type)
+  print score, type

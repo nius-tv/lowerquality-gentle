@@ -7,7 +7,7 @@
 
 echo $0 "$@"
 
-galeData=$(utils/make_absolute.sh "${@: -1}" );
+galeData=$(readlink -f "${@: -1}" );
 wavedir=$galeData/wav
 mkdir -p $wavedir
 
@@ -50,13 +50,13 @@ done
 (
   for w in `find $wavedir -name *.wav` ; do
     base=`basename $w .wav`
-    fullpath=`utils/make_absolute.sh $w`
+    fullpath=`readlink -f $w`
     echo "$base sox $fullpath -r 16000 -t wav - |"
   done
 
   for w in `find $wavedir -name *.flac` ; do
     base=`basename $w .flac`
-    fullpath=`utils/make_absolute.sh $w`
+    fullpath=`readlink -f $w`
     echo "$base sox $fullpath -r 16000 -t wav - |"
   done
 )  | sort -u > $galeData/wav.scp

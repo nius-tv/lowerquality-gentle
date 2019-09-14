@@ -41,17 +41,13 @@ struct SpectrogramOptions {
   bool raw_energy;  // If true, compute energy before preemphasis and windowing
 
   SpectrogramOptions() :
-    energy_floor(0.0),
+    energy_floor(0.0),  // not in log scale: a small value e.g. 1.0e-10
     raw_energy(true) {}
 
   void Register(OptionsItf *opts) {
     frame_opts.Register(opts);
     opts->Register("energy-floor", &energy_floor,
-                   "Floor on energy (absolute, not relative) in Spectrogram "
-                   "computation.  Caution: this floor is applied to the zeroth "
-                   "component, representing the total signal energy.  The "
-                   "floor on the individual spectrogram elements is fixed at "
-                   "std::numeric_limits<float>::epsilon().");
+                   "Floor on energy (absolute, not relative) in Spectrogram computation");
     opts->Register("raw-energy", &raw_energy,
                    "If true, compute energy before preemphasis and windowing");
   }
@@ -70,7 +66,7 @@ class SpectrogramComputer {
 
   int32 Dim() const { return opts_.frame_opts.PaddedWindowSize() / 2 + 1; }
 
-  bool NeedRawLogEnergy() const { return opts_.raw_energy; }
+  bool NeedRawLogEnergy() { return opts_.raw_energy; }
 
 
   /**
@@ -91,7 +87,7 @@ class SpectrogramComputer {
      @param [out] feature  Pointer to a vector of size this->Dim(), to which
          the computed feature will be written.
   */
-  void Compute(BaseFloat signal_raw_log_energy,
+  void Compute(BaseFloat signal_log_energy,
                BaseFloat vtln_warp,
                VectorBase<BaseFloat> *signal_frame,
                VectorBase<BaseFloat> *feature);

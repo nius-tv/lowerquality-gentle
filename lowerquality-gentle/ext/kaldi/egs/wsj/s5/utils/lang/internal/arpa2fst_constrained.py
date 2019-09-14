@@ -4,7 +4,6 @@
 # Apache 2.0.
 
 from __future__ import print_function
-from __future__ import division
 import sys
 import argparse
 import math
@@ -45,7 +44,7 @@ if args.verbose >= 1:
     print(' '.join(sys.argv), file = sys.stderr)
 
 
-class HistoryState(object):
+class HistoryState:
     def __init__(self):
         # note: neither backoff_prob nor the floats
         # in word_to_prob are in log space.
@@ -57,7 +56,7 @@ class HistoryState(object):
         self.word_to_prob = dict()
 
 
-class ArpaModel(object):
+class ArpaModel:
     def __init__(self):
         # self.orders is indexed by history-length [i.e. 0 for unigram,
         # 1 for bigram and so on], and is then a dict indexed

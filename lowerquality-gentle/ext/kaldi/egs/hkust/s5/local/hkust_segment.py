@@ -1,8 +1,8 @@
-#!/usr/bin/env python2.7
+#!/usr/bin/env python
 #coding:utf-8
 
-from __future__ import print_function
 import sys
+from __future__ import print_function
 from mmseg import seg_txt
 for line in sys.stdin:
   blks = str.split(line)

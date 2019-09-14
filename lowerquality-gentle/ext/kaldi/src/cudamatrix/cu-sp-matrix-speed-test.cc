@@ -128,13 +128,12 @@ template<typename Real> void CuSpMatrixSpeedTest() {
 
 
 int main() {
-  SetVerboseLevel(1);
-  //Select the GPU
+    //Select the GPU
 #if HAVE_CUDA == 1
-  CuDevice::Instantiate().SelectGpuId("yes"); //-2 .. automatic selection
+    CuDevice::Instantiate().SelectGpuId("yes"); //-2 .. automatic selection
 #endif
 
-  kaldi::CuSpMatrixSpeedTest<float>();
+    kaldi::CuSpMatrixSpeedTest<float>();
 #if HAVE_CUDA == 1
   if (CuDevice::Instantiate().DoublePrecisionSupported()) {
     kaldi::CuSpMatrixSpeedTest<double>();
@@ -147,5 +146,5 @@ int main() {
 #if HAVE_CUDA == 1
   CuDevice::Instantiate().PrintProfile();
 #endif
-  KALDI_LOG << "Tests succeeded.";
+  std::cout << "Tests succeeded.\n";
 }

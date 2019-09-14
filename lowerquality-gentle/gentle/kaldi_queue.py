@@ -1,4 +1,4 @@
-from queue import Queue
+from Queue import Queue
 from gentle import standard_kaldi
 
 def build(resources, nthreads=4, hclg_path=None):

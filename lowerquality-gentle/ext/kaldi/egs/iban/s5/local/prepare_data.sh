@@ -33,7 +33,7 @@ for x in train dev; do
             exit 1
         fi
         # we might want to store physical paths as a general rule
-        filename=$(utils/make_absolute.sh $filename)
+        filename=$(readlink -f $filename)
         echo "$rec $filename"
     done > data/$x/wav.scp
 

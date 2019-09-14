@@ -1,6 +1,6 @@
 BEST_LINE=18
-MODEL_PREFIX_URL=https://vystadial.ms.mff.cuni.cz/download/pykaldi/egs/vystadial/online_demo
-DATA_PREFIX_URL=https://vystadial.ms.mff.cuni.cz/download/pykaldi/egs/vystadial/online_demo
+MODEL_PREFIX_URL=http://vystadial.ms.mff.cuni.cz/download/kaldi/src/pykaldi/pykaldi/binutils/
+DATA_PREFIX_URL=http://vystadial.ms.mff.cuni.cz/download/kaldi/src/pykaldi/pykaldi/binutils/
 
 # Czech language models 
 LANG=cs

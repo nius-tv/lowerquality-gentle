@@ -83,7 +83,7 @@ class CompactLatticeHolder {
 
   static bool IsReadInBinary() { return true; }
 
-  T &Value() {
+  const T &Value() const {
     KALDI_ASSERT(t_ != NULL && "Called Value() on empty CompactLatticeHolder");
     return *t_;
   }
@@ -121,7 +121,7 @@ class LatticeHolder {
 
   static bool IsReadInBinary() { return true; }
 
-  T &Value() {
+  const T &Value() const {
     KALDI_ASSERT(t_ != NULL && "Called Value() on empty LatticeHolder");
     return *t_;
   }

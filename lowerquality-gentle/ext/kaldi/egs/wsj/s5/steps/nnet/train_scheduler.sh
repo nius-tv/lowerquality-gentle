@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Copyright 2012-2017  Brno University of Technology (author: Karel Vesely)
+# Copyright 2012-2015  Brno University of Technology (author: Karel Vesely)
 # Apache 2.0
 
 # Schedules epochs and controls learning rate during the neural network training
@@ -18,10 +18,6 @@ train_tool="nnet-train-frmshuff"
 train_tool_opts="--minibatch-size=256 --randomizer-size=32768 --randomizer-seed=777"
 feature_transform=
 
-split_feats= # int -> number of splits 'feats.scp -> feats.${i}.scp', starting from feats.1.scp,
-             # (data are alredy shuffled and split to N parts),
-             # empty -> no splitting,
-
 # learn rate scheduling,
 max_iters=20
 min_iters=0 # keep training, disable weight rejection, start learn-rate halving as usual,
@@ -32,7 +28,7 @@ end_halving_impr=0.001
 halving_factor=0.5
 
 # misc,
-verbose=0 # 0 No GPU time-stats, 1 with GPU time-stats (slower),
+verbose=1
 frame_weights=
 utt_weights=
 
@@ -112,13 +108,6 @@ for iter in $(seq -w $max_iters); do
     mlp_best=${mlp_best}.dropout_rate${dropout_rate}
   fi
 
-  # select the split,
-  feats_tr_portion="$feats_tr" # no split?
-  if [ -n "$split_feats" ]; then
-    portion=$((1 + iter % split_feats))
-    feats_tr_portion="${feats_tr/train.scp/train.${portion}.scp}"
-  fi
-
   # training,
   log=$dir/log/iter${iter}.tr.log; hostname>$log
   $train_tool --cross-validate=false --randomize=true --verbose=$verbose $train_tool_opts \
@@ -127,7 +116,7 @@ for iter in $(seq -w $max_iters); do
     ${feature_transform:+ --feature-transform=$feature_transform} \
     ${frame_weights:+ "--frame-weights=$frame_weights"} \
     ${utt_weights:+ "--utt-weights=$utt_weights"} \
-    "$feats_tr_portion" "$labels_tr" $mlp_best $mlp_next \
+    "$feats_tr" "$labels_tr" $mlp_best $mlp_next \
     2>> $log || exit 1;
 
   tr_loss=$(cat $dir/log/iter${iter}.tr.log | grep "AvgLoss:" | tail -n 1 | awk '{ print $4; }')

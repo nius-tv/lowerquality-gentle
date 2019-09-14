@@ -15,7 +15,8 @@ fi
 echo "Installing kaldi_lm"
 
 if [ ! -d "kaldi_lm" ]; then
-  git clone https://github.com/danpovey/kaldi_lm.git || exit 1
+  wget http://www.danielpovey.com/files/kaldi/kaldi_lm.tar.gz || exit 1;
+  tar -xvzf kaldi_lm.tar.gz || exit 1;
 fi
 
 cd kaldi_lm

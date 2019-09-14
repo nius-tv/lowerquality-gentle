@@ -54,6 +54,16 @@ void TestMakeLinearAcceptor() {
   if (vec2.size() != 0 || vec3.size() != 0) { // This test might not work
     // for empty sequences...
     {
+      vector<vector<I> > vecs2;
+      vector<vector<I> > vecs3;
+      vector<Weight> ws;
+      GetLinearSymbolSequences(vfst, &vecs2, &vecs3, &ws);
+      assert(vecs2.size() == 1);
+      assert(vecs2[0] == vec2);
+      assert(vecs3[0] == vec3);
+      assert(ApproxEqual(ws[0], w));
+    }
+    {
       vector<VectorFst<Arc> > fstvec;
       NbestAsFsts(vfst, 1, &fstvec);
       KALDI_ASSERT(fstvec.size() == 1);
@@ -136,7 +146,11 @@ template<class Arc>  void TestSafeDeterminizeWrapper() {  // also tests SafeDete
 
   std::cout <<" printing before trimming\n";
   {
+#ifdef HAVE_OPENFST_GE_10400
     FstPrinter<Arc> fstprinter(*fst, sptr, sptr, NULL, false, true, "\t");
+#else
+    FstPrinter<Arc> fstprinter(*fst, sptr, sptr, NULL, false, true);
+#endif
     fstprinter.Print(&std::cout, "standard output");
   }
   // Trim resulting FST.
@@ -144,7 +158,11 @@ template<class Arc>  void TestSafeDeterminizeWrapper() {  // also tests SafeDete
 
   std::cout <<" printing after trimming\n";
   {
+#ifdef HAVE_OPENFST_GE_10400
     FstPrinter<Arc> fstprinter(*fst, sptr, sptr, NULL, false, true, "\t");
+#else
+    FstPrinter<Arc> fstprinter(*fst, sptr, sptr, NULL, false, true);
+#endif
     fstprinter.Print(&std::cout, "standard output");
   }
 
@@ -203,7 +221,7 @@ template<class Arc>  void TestAcceptorMinimize() {
   RemoveWeights(fst);
 
   VectorFst<Arc> fst2(*fst);
-  internal::AcceptorMinimize(&fst2);
+  AcceptorMinimize(&fst2);
 
   assert(RandEquivalent(*fst, fst2, 5/*paths*/, 0.01/*delta*/, kaldi::Rand()/*seed*/, 100/*path length-- max?*/));
 
@@ -358,7 +376,11 @@ void TestEqualAlign() {
 
 template<class Arc> void Print(const Fst<Arc> &fst, std::string message) {
   std::cout << message << "\n";
+#ifdef HAVE_OPENFST_GE_10400
   FstPrinter<Arc> fstprinter(fst, NULL, NULL, NULL, false, true, "\t");
+#else
+  FstPrinter<Arc> fstprinter(fst, NULL, NULL, NULL, false, true);
+#endif
   fstprinter.Print(&std::cout, "standard output");
 }
 
@@ -429,3 +451,5 @@ int main() {
     fst::TestRemoveUselessArcs<fst::StdArc>();
   }
 }
+
+

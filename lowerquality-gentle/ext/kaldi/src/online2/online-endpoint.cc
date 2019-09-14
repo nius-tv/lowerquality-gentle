@@ -19,7 +19,6 @@
 
 #include "online2/online-endpoint.h"
 #include "decoder/lattice-faster-online-decoder.h"
-#include "decoder/grammar-fst.h"
 
 namespace kaldi {
 
@@ -71,10 +70,9 @@ bool EndpointDetected(const OnlineEndpointConfig &config,
   return false;
 }
 
-template <typename FST>
 int32 TrailingSilenceLength(const TransitionModel &tmodel,
                             const std::string &silence_phones_str,
-                            const LatticeFasterOnlineDecoderTpl<FST> &decoder) {
+                            const LatticeFasterOnlineDecoder &decoder) {
   std::vector<int32> silence_phones;
   if (!SplitStringToIntegers(silence_phones_str, ":", false, &silence_phones))
     KALDI_ERR << "Bad --silence-phones option in endpointing config: "
@@ -87,7 +85,7 @@ int32 TrailingSilenceLength(const TransitionModel &tmodel,
   ConstIntegerSet<int32> silence_set(silence_phones);
 
   bool use_final_probs = false;
-  typename LatticeFasterOnlineDecoderTpl<FST>::BestPathIterator iter =
+  LatticeFasterOnlineDecoder::BestPathIterator iter =
       decoder.BestPathEnd(use_final_probs, NULL);
   int32 num_silence_frames = 0;
   while (!iter.Done()) {  // we're going backwards in time from the most
@@ -106,12 +104,11 @@ int32 TrailingSilenceLength(const TransitionModel &tmodel,
   return num_silence_frames;
 }
 
-template <typename FST>
 bool EndpointDetected(
     const OnlineEndpointConfig &config,
     const TransitionModel &tmodel,
     BaseFloat frame_shift_in_seconds,
-    const LatticeFasterOnlineDecoderTpl<FST> &decoder) {
+    const LatticeFasterOnlineDecoder &decoder) {
   if (decoder.NumFramesDecoded() == 0) return false;
 
   BaseFloat final_relative_cost = decoder.FinalRelativeCost();
@@ -124,24 +121,6 @@ bool EndpointDetected(
   return EndpointDetected(config, num_frames_decoded, trailing_silence_frames,
                           frame_shift_in_seconds, final_relative_cost);
 }
-
-
-// Instantiate EndpointDetected for the types we need.
-// It will require TrailingSilenceLength so we don't have to instantiate that.
-template
-bool EndpointDetected<fst::Fst<fst::StdArc> >(
-    const OnlineEndpointConfig &config,
-    const TransitionModel &tmodel,
-    BaseFloat frame_shift_in_seconds,
-    const LatticeFasterOnlineDecoderTpl<fst::Fst<fst::StdArc> > &decoder);
-
-
-template
-bool EndpointDetected<fst::GrammarFst>(
-    const OnlineEndpointConfig &config,
-    const TransitionModel &tmodel,
-    BaseFloat frame_shift_in_seconds,
-    const LatticeFasterOnlineDecoderTpl<fst::GrammarFst> &decoder);
 
 
 }  // namespace kaldi
